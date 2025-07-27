@@ -14,202 +14,258 @@ export type Database = {
   }
   public: {
     Tables: {
-      companies: {
+      clientes: {
         Row: {
-          active: boolean | null
-          address: string | null
-          cep: string | null
-          city: string | null
-          cnpj: string | null
+          cpf: string
           created_at: string | null
+          data_nascimento: string | null
           email: string | null
+          endereco_id: string | null
           id: string
-          name: string
-          phone: string | null
-          state: string | null
+          nome: string
+          telefone: string
           updated_at: string | null
         }
         Insert: {
-          active?: boolean | null
-          address?: string | null
-          cep?: string | null
-          city?: string | null
-          cnpj?: string | null
+          cpf: string
           created_at?: string | null
+          data_nascimento?: string | null
           email?: string | null
+          endereco_id?: string | null
           id?: string
-          name: string
-          phone?: string | null
-          state?: string | null
+          nome: string
+          telefone: string
           updated_at?: string | null
         }
         Update: {
-          active?: boolean | null
-          address?: string | null
-          cep?: string | null
-          city?: string | null
-          cnpj?: string | null
+          cpf?: string
           created_at?: string | null
+          data_nascimento?: string | null
           email?: string | null
+          endereco_id?: string | null
           id?: string
-          name?: string
-          phone?: string | null
-          state?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          active: boolean | null
-          company_id: string | null
-          created_at: string | null
-          email: string
-          full_name: string
-          id: string
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          company_id?: string | null
-          created_at?: string | null
-          email: string
-          full_name: string
-          id: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          company_id?: string | null
-          created_at?: string | null
-          email?: string
-          full_name?: string
-          id?: string
-          role?: Database["public"]["Enums"]["user_role"]
+          nome?: string
+          telefone?: string
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "clientes_endereco_id_fkey"
+            columns: ["endereco_id"]
             isOneToOne: false
-            referencedRelation: "companies"
+            referencedRelation: "enderecos"
             referencedColumns: ["id"]
           },
         ]
       }
-      vendas: {
+      documentos_venda: {
         Row: {
-          bairro: string | null
-          cep: string | null
-          cidade: string | null
-          company_id: string
-          complemento: string | null
-          cpf: string
-          created_at: string | null
-          data_instalacao: string | null
-          data_nascimento: string | null
-          data_vencimento: string | null
-          data_venda: string | null
-          email: string | null
-          estado: string | null
-          forma_pagamento: string | null
+          data_upload: string | null
           id: string
-          nome_completo: string
-          nome_vendedor: string | null
-          numero: string | null
-          numero_proposta: string | null
-          observacoes: string | null
-          operadora: string
-          plano_escolhido: string | null
-          ponto_referencia: string | null
-          rg: string | null
-          rua: string | null
-          status_venda: Database["public"]["Enums"]["status_venda"] | null
-          telefone: string | null
-          telefone2: string | null
-          updated_at: string | null
-          user_id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho: number
+          tipo: Database["public"]["Enums"]["tipo_documento"]
+          tipo_mime: string
+          venda_id: string
         }
         Insert: {
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
-          company_id: string
-          complemento?: string | null
-          cpf: string
-          created_at?: string | null
-          data_instalacao?: string | null
-          data_nascimento?: string | null
-          data_vencimento?: string | null
-          data_venda?: string | null
-          email?: string | null
-          estado?: string | null
-          forma_pagamento?: string | null
+          data_upload?: string | null
           id?: string
-          nome_completo: string
-          nome_vendedor?: string | null
-          numero?: string | null
-          numero_proposta?: string | null
-          observacoes?: string | null
-          operadora: string
-          plano_escolhido?: string | null
-          ponto_referencia?: string | null
-          rg?: string | null
-          rua?: string | null
-          status_venda?: Database["public"]["Enums"]["status_venda"] | null
-          telefone?: string | null
-          telefone2?: string | null
-          updated_at?: string | null
-          user_id: string
+          nome_arquivo: string
+          storage_path: string
+          tamanho: number
+          tipo: Database["public"]["Enums"]["tipo_documento"]
+          tipo_mime: string
+          venda_id: string
         }
         Update: {
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
-          company_id?: string
-          complemento?: string | null
-          cpf?: string
-          created_at?: string | null
-          data_instalacao?: string | null
-          data_nascimento?: string | null
-          data_vencimento?: string | null
-          data_venda?: string | null
-          email?: string | null
-          estado?: string | null
-          forma_pagamento?: string | null
+          data_upload?: string | null
           id?: string
-          nome_completo?: string
-          nome_vendedor?: string | null
-          numero?: string | null
-          numero_proposta?: string | null
-          observacoes?: string | null
-          operadora?: string
-          plano_escolhido?: string | null
-          ponto_referencia?: string | null
-          rg?: string | null
-          rua?: string | null
-          status_venda?: Database["public"]["Enums"]["status_venda"] | null
-          telefone?: string | null
-          telefone2?: string | null
-          updated_at?: string | null
-          user_id?: string
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho?: number
+          tipo?: Database["public"]["Enums"]["tipo_documento"]
+          tipo_mime?: string
+          venda_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "vendas_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "documentos_venda_venda_id_fkey"
+            columns: ["venda_id"]
             isOneToOne: false
-            referencedRelation: "companies"
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enderecos: {
+        Row: {
+          bairro: string
+          cep: string
+          complemento: string | null
+          created_at: string | null
+          id: string
+          localidade: string
+          logradouro: string
+          numero: string
+          uf: string
+        }
+        Insert: {
+          bairro: string
+          cep: string
+          complemento?: string | null
+          created_at?: string | null
+          id?: string
+          localidade: string
+          logradouro: string
+          numero: string
+          uf: string
+        }
+        Update: {
+          bairro?: string
+          cep?: string
+          complemento?: string | null
+          created_at?: string | null
+          id?: string
+          localidade?: string
+          logradouro?: string
+          numero?: string
+          uf?: string
+        }
+        Relationships: []
+      }
+      historico_vendas: {
+        Row: {
+          data_alteracao: string | null
+          id: string
+          observacao: string | null
+          status_anterior: Database["public"]["Enums"]["status_venda"] | null
+          status_novo: Database["public"]["Enums"]["status_venda"]
+          usuario_id: string
+          venda_id: string
+        }
+        Insert: {
+          data_alteracao?: string | null
+          id?: string
+          observacao?: string | null
+          status_anterior?: Database["public"]["Enums"]["status_venda"] | null
+          status_novo: Database["public"]["Enums"]["status_venda"]
+          usuario_id: string
+          venda_id: string
+        }
+        Update: {
+          data_alteracao?: string | null
+          id?: string
+          observacao?: string | null
+          status_anterior?: Database["public"]["Enums"]["status_venda"] | null
+          status_novo?: Database["public"]["Enums"]["status_venda"]
+          usuario_id?: string
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_vendas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vendas_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "historico_vendas_venda_id_fkey"
+            columns: ["venda_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usuarios: {
+        Row: {
+          ativo: boolean | null
+          cpf: string
+          created_at: string | null
+          data_cadastro: string | null
+          email: string
+          funcao: Database["public"]["Enums"]["funcao_usuario"]
+          id: string
+          nome: string
+          telefone: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cpf: string
+          created_at?: string | null
+          data_cadastro?: string | null
+          email: string
+          funcao?: Database["public"]["Enums"]["funcao_usuario"]
+          id?: string
+          nome: string
+          telefone: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cpf?: string
+          created_at?: string | null
+          data_cadastro?: string | null
+          email?: string
+          funcao?: Database["public"]["Enums"]["funcao_usuario"]
+          id?: string
+          nome?: string
+          telefone?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      vendas: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          data_venda: string | null
+          id: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["status_venda"] | null
+          updated_at: string | null
+          vendedor_id: string
+          vendedor_nome: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          data_venda?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_venda"] | null
+          updated_at?: string | null
+          vendedor_id: string
+          vendedor_nome: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          data_venda?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_venda"] | null
+          updated_at?: string | null
+          vendedor_id?: string
+          vendedor_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -219,32 +275,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
+      get_funcao_usuario: {
+        Args: { user_id?: string }
+        Returns: Database["public"]["Enums"]["funcao_usuario"]
       }
       get_user_company: {
         Args: { user_id?: string }
         Returns: string
       }
-      get_user_role: {
-        Args: { user_id?: string }
-        Returns: Database["public"]["Enums"]["user_role"]
+      get_usuario_atual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
-      is_super_admin: {
+      is_admin_or_supervisor: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
     Enums: {
-      status_venda:
-        | "Gerada"
-        | "Aguardando Habilitação"
-        | "Habilitada"
-        | "Cancelada"
-        | "Aguardando Pagamento"
-        | "Instalada"
-      user_role: "super_admin" | "admin" | "user"
+      funcao_usuario: "ADMINISTRADOR_GERAL" | "SUPERVISOR" | "VENDEDOR"
+      status_venda: "gerada" | "em_andamento" | "aprovada" | "perdida"
+      tipo_documento:
+        | "documento_cliente_frente"
+        | "documento_cliente_verso"
+        | "comprovante_endereco"
+        | "fachada_casa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -372,15 +427,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      status_venda: [
-        "Gerada",
-        "Aguardando Habilitação",
-        "Habilitada",
-        "Cancelada",
-        "Aguardando Pagamento",
-        "Instalada",
+      funcao_usuario: ["ADMINISTRADOR_GERAL", "SUPERVISOR", "VENDEDOR"],
+      status_venda: ["gerada", "em_andamento", "aprovada", "perdida"],
+      tipo_documento: [
+        "documento_cliente_frente",
+        "documento_cliente_verso",
+        "comprovante_endereco",
+        "fachada_casa",
       ],
-      user_role: ["super_admin", "admin", "user"],
     },
   },
 } as const
