@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { buscarEnderecoPorCep, formatarCep, validarCep } from "@/services/viacep";
 import { salvarVenda } from "@/utils/localStorage";
-import { Venda, VendaFormData } from "@/types/venda";
-import { Loader2, Upload, User, MapPin } from "lucide-react";
+import { Venda, VendaFormData, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
+import { Loader2, User, MapPin } from "lucide-react";
+import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
 
 /**
  * Página de cadastro de nova venda
@@ -18,7 +19,12 @@ import { Loader2, Upload, User, MapPin } from "lucide-react";
 const CadastroVenda = () => {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<VendaFormData>();
   const [isLoadingCep, setIsLoadingCep] = useState(false);
-  const [documentos, setDocumentos] = useState<{ documentoCliente?: File; fachadaCasa?: File }>({});
+  const [documentos, setDocumentos] = useState<DocumentosVenda>({
+    documentoClienteFrente: [],
+    documentoClienteVerso: [],
+    comprovanteEndereco: [],
+    fachadaCasa: []
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -65,14 +71,10 @@ const CadastroVenda = () => {
   };
 
   /**
-   * Processa upload de arquivos
+   * Atualiza documentos por categoria
    */
-  const handleFileUpload = (tipo: "documentoCliente" | "fachadaCasa", file: File) => {
-    setDocumentos(prev => ({ ...prev, [tipo]: file }));
-    toast({
-      title: "Arquivo carregado",
-      description: `${file.name} foi adicionado com sucesso`,
-    });
+  const handleDocumentosChange = (categoria: keyof DocumentosVenda, docs: DocumentoAnexado[]) => {
+    setDocumentos(prev => ({ ...prev, [categoria]: docs }));
   };
 
   /**
@@ -287,53 +289,39 @@ const CadastroVenda = () => {
         </Card>
 
         {/* Upload de Documentos */}
-        <Card className="bg-gradient-card shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Upload className="h-5 w-5 text-primary" />
-              <span>Documentos</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="documentoCliente">Documento do Cliente</Label>
-                <Input
-                  id="documentoCliente"
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload("documentoCliente", file);
-                  }}
-                />
-                {documentos.documentoCliente && (
-                  <p className="text-sm text-success mt-1">
-                    ✓ {documentos.documentoCliente.name}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="fachadaCasa">Foto da Fachada</Label>
-                <Input
-                  id="fachadaCasa"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload("fachadaCasa", file);
-                  }}
-                />
-                {documentos.fachadaCasa && (
-                  <p className="text-sm text-success mt-1">
-                    ✓ {documentos.fachadaCasa.name}
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DocumentUpload
+            titulo="Documento Cliente - Frente"
+            documentos={documentos.documentoClienteFrente || []}
+            onDocumentosChange={(docs) => handleDocumentosChange('documentoClienteFrente', docs)}
+            acceptTypes="image/*,.pdf"
+            maxFiles={2}
+          />
+          
+          <DocumentUpload
+            titulo="Documento Cliente - Verso"
+            documentos={documentos.documentoClienteVerso || []}
+            onDocumentosChange={(docs) => handleDocumentosChange('documentoClienteVerso', docs)}
+            acceptTypes="image/*,.pdf"
+            maxFiles={2}
+          />
+          
+          <DocumentUpload
+            titulo="Comprovante de Endereço"
+            documentos={documentos.comprovanteEndereco || []}
+            onDocumentosChange={(docs) => handleDocumentosChange('comprovanteEndereco', docs)}
+            acceptTypes="image/*,.pdf"
+            maxFiles={3}
+          />
+          
+          <DocumentUpload
+            titulo="Fachada da Casa"
+            documentos={documentos.fachadaCasa || []}
+            onDocumentosChange={(docs) => handleDocumentosChange('fachadaCasa', docs)}
+            acceptTypes="image/*"
+            maxFiles={3}
+          />
+        </div>
 
         {/* Ações */}
         <div className="flex justify-end space-x-4">

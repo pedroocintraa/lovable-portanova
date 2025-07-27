@@ -16,6 +16,7 @@ import {
   Eye,
   Edit
 } from "lucide-react";
+import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
 
 /**
  * Página de acompanhamento de vendas
@@ -215,45 +216,52 @@ const AcompanhamentoVendas = () => {
                   </div>
 
                   {/* Ações */}
-                  <div className="flex flex-wrap gap-2">
-                    {venda.status === "gerada" && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
-                      >
-                        Iniciar Processo
-                      </Button>
+                  <div className="flex flex-col lg:flex-row gap-2 lg:items-center">
+                    {/* Visualização de Documentos */}
+                    {venda.documentos && (
+                      <DocumentViewer documentos={venda.documentos} />
                     )}
                     
-                    {venda.status === "em_andamento" && (
-                      <>
+                    <div className="flex flex-wrap gap-2">
+                      {venda.status === "gerada" && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
+                        >
+                          Iniciar Processo
+                        </Button>
+                      )}
+                      
+                      {venda.status === "em_andamento" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-success text-success hover:bg-success hover:text-success-foreground"
+                            onClick={() => handleAtualizarStatus(venda.id, "aprovada")}
+                          >
+                            Aprovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleAtualizarStatus(venda.id, "perdida")}
+                          >
+                            Marcar como Perdida
+                          </Button>
+                        </>
+                      )}
+
+                      {(venda.status === "aprovada" || venda.status === "perdida") && (
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-success text-success hover:bg-success hover:text-success-foreground"
-                          onClick={() => handleAtualizarStatus(venda.id, "aprovada")}
+                          onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
                         >
-                          Aprovar
+                          Reprocessar
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleAtualizarStatus(venda.id, "perdida")}
-                        >
-                          Marcar como Perdida
-                        </Button>
-                      </>
-                    )}
-
-                    {(venda.status === "aprovada" || venda.status === "perdida") && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
-                      >
-                        Reprocessar
-                      </Button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

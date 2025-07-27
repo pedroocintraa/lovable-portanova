@@ -21,9 +21,20 @@ export interface Cliente {
   endereco: Endereco;
 }
 
+export interface DocumentoAnexado {
+  id: string;
+  nome: string;
+  tipo: string;
+  tamanho: number;
+  dataUpload: string;
+  conteudo: string; // base64 para persistência
+}
+
 export interface DocumentosVenda {
-  documentoCliente?: File;
-  fachadaCasa?: File;
+  documentoClienteFrente?: DocumentoAnexado[];
+  documentoClienteVerso?: DocumentoAnexado[];
+  comprovanteEndereco?: DocumentoAnexado[];
+  fachadaCasa?: DocumentoAnexado[];
 }
 
 export interface Venda {
