@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buscarEnderecoPorCep, formatarCep, validarCep } from "@/services/viacep";
 // Import removido - agora usando storageService
 import { Venda, VendaFormData, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
-import { Loader2, User, MapPin } from "lucide-react";
+import { Loader2, User, MapPin } from "@/components/icons";
 import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
 
 /**
