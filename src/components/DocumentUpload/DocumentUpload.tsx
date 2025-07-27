@@ -49,31 +49,26 @@ const DocumentUpload = ({
     for (let i = 0; i < Math.min(files.length, maxFiles - documentos.length); i++) {
       const file = files[i];
       
-      // Validar tamanho (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      // Validar tamanho (10MB máximo para IndexedDB)
+      if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "Arquivo muito grande",
-          description: `${file.name} excede 5MB`,
+          description: `${file.name} excede o limite de 10MB`,
           variant: "destructive",
         });
         continue;
       }
 
       try {
-        const conteudo = await fileToBase64(file);
-        const documento: DocumentoAnexado = {
-          id: `doc-${Date.now()}-${i}`,
-          nome: file.name,
-          tipo: file.type,
-          tamanho: file.size,
-          dataUpload: new Date().toISOString(),
-          conteudo
-        };
+        // Usar storageService para processar o arquivo com compressão
+        const { storageService } = await import("@/services/storageService");
+        const documento = await storageService.processFile(file);
         novosDocumentos.push(documento);
       } catch (error) {
+        console.error("Erro ao processar arquivo:", error);
         toast({
           title: "Erro ao processar arquivo",
-          description: `Não foi possível carregar ${file.name}`,
+          description: `Não foi possível processar ${file.name}`,
           variant: "destructive",
         });
       }
@@ -163,7 +158,7 @@ const DocumentUpload = ({
               }}
             />
             <p className="text-xs text-muted-foreground mt-2">
-              Máximo {maxFiles} arquivo(s), até 5MB cada
+              Máximo {maxFiles} arquivo(s), até 10MB cada
             </p>
           </div>
         )}

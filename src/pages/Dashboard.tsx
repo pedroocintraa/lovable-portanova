@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { MetricCard } from "@/components/Dashboard/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { obterEstatisticasVendas } from "@/utils/localStorage";
+// Import removido - agora usando storageService
 import { 
   TrendingUp, 
   Users, 
@@ -15,17 +15,33 @@ import {
  * Página principal do dashboard com métricas e análises de vendas
  */
 const Dashboard = () => {
-  const estatisticas = useMemo(() => obterEstatisticasVendas(), []);
+  const [estatisticas, setEstatisticas] = useState<any>(null);
+
+  useEffect(() => {
+    const carregarEstatisticas = async () => {
+      try {
+        const { storageService } = await import("@/services/storageService");
+        const stats = storageService.obterEstatisticasVendas();
+        setEstatisticas(stats);
+      } catch (error) {
+        console.error("Erro ao carregar estatísticas:", error);
+      }
+    };
+
+    carregarEstatisticas();
+  }, []);
 
   // Top 5 bairros com mais vendas
-  const topBairros = Object.entries(estatisticas.vendasPorBairro)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 5);
+  const topBairros = estatisticas ? Object.entries(estatisticas.vendasPorBairro)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 5) : [];
 
   // Top 5 cidades com mais vendas
-  const topCidades = Object.entries(estatisticas.vendasPorCidade)
-    .sort(([,a], [,b]) => b - a)
-    .slice(0, 5);
+  const topCidades = estatisticas ? Object.entries(estatisticas.vendasPorCidade)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 5) : [];
+
+  if (!estatisticas) return <div>Carregando...</div>;
 
   return (
     <div className="space-y-6">
@@ -93,9 +109,9 @@ const Dashboard = () => {
                       </div>
                       <span className="font-medium text-foreground">{bairro}</span>
                     </div>
-                    <span className="text-sm font-semibold text-primary">
-                      {quantidade} vendas
-                    </span>
+                     <span className="text-sm font-semibold text-primary">
+                       {quantidade as number} vendas
+                     </span>
                   </div>
                 ))
               ) : (
@@ -126,9 +142,9 @@ const Dashboard = () => {
                       </div>
                       <span className="font-medium text-foreground">{cidade}</span>
                     </div>
-                    <span className="text-sm font-semibold text-success">
-                      {quantidade} vendas
-                    </span>
+                     <span className="text-sm font-semibold text-success">
+                       {quantidade as number} vendas
+                     </span>
                   </div>
                 ))
               ) : (

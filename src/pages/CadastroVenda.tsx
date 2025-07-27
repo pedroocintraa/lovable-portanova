@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { buscarEnderecoPorCep, formatarCep, validarCep } from "@/services/viacep";
-import { salvarVenda } from "@/utils/localStorage";
+// Import removido - agora usando storageService
 import { Venda, VendaFormData, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
 import { Loader2, User, MapPin } from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
@@ -80,30 +80,34 @@ const CadastroVenda = () => {
   /**
    * Submete o formulário e salva a venda
    */
-  const onSubmit = (data: VendaFormData) => {
+  const onSubmit = async (data: VendaFormData) => {
     try {
       const novaVenda: Venda = {
-        id: `venda-${Date.now()}`,
+        id: `venda_${Date.now()}`,
         cliente: data.cliente,
-        documentos,
+        documentos: documentos,
         status: "gerada",
         dataVenda: new Date().toISOString(),
         observacoes: data.observacoes,
       };
 
-      salvarVenda(novaVenda);
-
+      // Usar o novo serviço de armazenamento
+      const { storageService } = await import("@/services/storageService");
+      await storageService.salvarVenda(novaVenda);
+      
       toast({
-        title: "Venda cadastrada com sucesso!",
-        description: "A venda foi registrada e está disponível no acompanhamento",
+        title: "Venda cadastrada",
+        description: "Venda cadastrada com sucesso!",
       });
 
+      // Navegar para página de acompanhamento
       navigate("/acompanhamento");
     } catch (error) {
+      console.error("Erro ao cadastrar venda:", error);
       toast({
-        title: "Erro ao cadastrar venda",
-        description: "Tente novamente mais tarde",
         variant: "destructive",
+        title: "Erro ao cadastrar",
+        description: "Não foi possível cadastrar a venda. Tente novamente.",
       });
     }
   };

@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { obterVendas, atualizarStatusVenda } from "@/utils/localStorage";
 import { Venda } from "@/types/venda";
 import { 
   Search, 
@@ -23,10 +22,33 @@ import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
  * Lista todas as vendas com filtros e ações de status
  */
 const AcompanhamentoVendas = () => {
-  const [vendas, setVendas] = useState<Venda[]>(obterVendas());
+  const [vendas, setVendas] = useState<Venda[]>([]);
   const [filtroTexto, setFiltroTexto] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<Venda["status"] | "todas">("todas");
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Carregar vendas ao montar o componente
+  useEffect(() => {
+    const carregarVendas = async () => {
+      try {
+        const { storageService } = await import("@/services/storageService");
+        const vendasCarregadas = await storageService.obterVendas();
+        setVendas(vendasCarregadas);
+      } catch (error) {
+        console.error("Erro ao carregar vendas:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar vendas",
+          description: "Não foi possível carregar as vendas.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarVendas();
+  }, [toast]);
 
   /**
    * Filtra vendas baseado no texto e status
@@ -38,7 +60,7 @@ const AcompanhamentoVendas = () => {
         venda.cliente.endereco.bairro.toLowerCase().includes(filtroTexto.toLowerCase()) ||
         venda.cliente.endereco.localidade.toLowerCase().includes(filtroTexto.toLowerCase());
 
-      const matchStatus = filtroStatus === "todos" || venda.status === filtroStatus;
+      const matchStatus = filtroStatus === "todas" || venda.status === filtroStatus;
 
       return matchTexto && matchStatus;
     });
@@ -47,20 +69,26 @@ const AcompanhamentoVendas = () => {
   /**
    * Atualiza status de uma venda
    */
-  const handleAtualizarStatus = (id: string, novoStatus: Venda["status"]) => {
+  const handleAtualizarStatus = async (id: string, novoStatus: Venda["status"]) => {
     try {
-      atualizarStatusVenda(id, novoStatus);
-      setVendas(obterVendas()); // Recarrega lista
+      const { storageService } = await import("@/services/storageService");
+      await storageService.atualizarStatusVenda(id, novoStatus);
       
+      // Atualizar estado local
+      setVendas(vendas.map(venda => 
+        venda.id === id ? { ...venda, status: novoStatus } : venda
+      ));
+
       toast({
-        title: "Status atualizado!",
-        description: `Venda marcada como ${getStatusLabel(novoStatus)}`,
+        title: "Status atualizado",
+        description: `Status da venda alterado para ${getStatusLabel(novoStatus)}`,
       });
     } catch (error) {
+      console.error("Erro ao atualizar status:", error);
       toast({
-        title: "Erro ao atualizar status",
-        description: "Tente novamente mais tarde",
         variant: "destructive",
+        title: "Erro ao atualizar status",
+        description: "Não foi possível atualizar o status da venda.",
       });
     }
   };
@@ -98,6 +126,17 @@ const AcompanhamentoVendas = () => {
     return new Date(dataISO).toLocaleDateString("pt-BR");
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Acompanhamento de Vendas</h1>
+          <p className="text-muted-foreground">Carregando vendas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -131,11 +170,11 @@ const AcompanhamentoVendas = () => {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={filtroStatus === "todos" ? "default" : "outline"}
-                onClick={() => setFiltroStatus("todos")}
+                variant={filtroStatus === "todas" ? "default" : "outline"}
+                onClick={() => setFiltroStatus("todas")}
                 size="sm"
               >
-                Todos
+                Todas
               </Button>
               <Button
                 variant={filtroStatus === "gerada" ? "default" : "outline"}
@@ -275,7 +314,7 @@ const AcompanhamentoVendas = () => {
                 Nenhuma venda encontrada
               </h3>
               <p className="text-muted-foreground">
-                {filtroTexto || filtroStatus !== "todos" 
+                {filtroTexto || filtroStatus !== "todas" 
                   ? "Tente ajustar os filtros ou cadastrar uma nova venda"
                   : "Comece cadastrando sua primeira venda"}
               </p>
