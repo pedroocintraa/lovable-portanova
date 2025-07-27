@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
  * Lista todas as vendas com filtros e ações de status
  */
 const AcompanhamentoVendas = () => {
+  const navigate = useNavigate();
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<Venda["status"] | "todas">("todas");
@@ -256,15 +258,20 @@ const AcompanhamentoVendas = () => {
 
                   {/* Ações */}
                   <div className="flex flex-col lg:flex-row gap-2 lg:items-center">
-                    {/* Visualização de Documentos */}
-                    {venda.documentos && (
-                      <DocumentViewer documentos={venda.documentos} />
-                    )}
+                    {/* Botão Ver Detalhes - Principal */}
+                    <Button
+                      onClick={() => navigate(`/venda/${venda.id}`)}
+                      className="lg:min-w-[140px]"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Detalhes
+                    </Button>
                     
                     <div className="flex flex-wrap gap-2">
                       {venda.status === "gerada" && (
                         <Button
                           size="sm"
+                          variant="outline"
                           onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
                         >
                           Iniciar Processo
