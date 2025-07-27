@@ -2,41 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Sistema de Design CRM - Todas as cores, gradientes e estilos centralizados */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cores principais - tema corporativo */
+    --background: 240 10% 98%;
+    --foreground: 222 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Azul corporativo principal */
+    --primary: 214 84% 56%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 214 95% 93%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Cinza secundário */
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Verde para status de sucesso */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --success-light: 142 76% 95%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Laranja para alertas */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --warning-light: 38 92% 95%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --accent: 214 84% 56%;
+    --accent-foreground: 0 0% 98%;
 
-    --radius: 0.5rem;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 214 84% 56%;
+
+    --radius: 0.75rem;
+
+    /* Gradientes corporativos */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(214 84% 46%));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 76% 30%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 98%));
+
+    /* Sombras elegantes */
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-primary: 0 10px 25px -5px hsl(var(--primary) / 0.3);
+
+    /* Animações suaves */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s ease-out;
 
     --sidebar-background: 0 0% 98%;
 

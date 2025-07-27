@@ -1,73 +1,245 @@
-# Welcome to your Lovable project
+# CRM de Vendas Porta a Porta
 
-## Project info
+Um sistema completo de CRM para vendas porta a porta, desenvolvido com React, TypeScript e Tailwind CSS, pronto para conversão em PWA.
 
-**URL**: https://lovable.dev/projects/f67ca38f-d982-4072-9bcf-166d1520a418
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+### ✅ Implementadas
+- **Dashboard Analytics**: Métricas de vendas, top bairros/cidades, distribuição por status
+- **Cadastro de Vendas**: Formulário completo com integração ViaCEP
+- **Acompanhamento**: Lista de vendas com filtros e controle de status
+- **Design Responsivo**: Interface moderna e corporativa
+- **Validações**: Formulários com tratamento de erros
+- **Persistência Local**: Dados salvos no localStorage
 
-There are several ways of editing your application.
+### 🔄 Próximas Versões
+- Backend com API REST
+- Autenticação de usuários
+- Relatórios avançados
+- Notificações push (PWA)
+- Sincronização offline
 
-**Use Lovable**
+## 🛠 Tecnologias Utilizadas
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f67ca38f-d982-4072-9bcf-166d1520a418) and start prompting.
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui, Lucide Icons
+- **Roteamento**: React Router v6
+- **Forms**: React Hook Form
+- **Build Tool**: Vite
+- **API Externa**: ViaCEP (busca de endereços)
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📁 Estrutura do Projeto
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/
+│   ├── Dashboard/          # Componentes do dashboard
+│   ├── Layout/             # Layout e navegação
+│   └── ui/                 # Componentes base (shadcn)
+├── pages/                  # Páginas principais
+│   ├── Dashboard.tsx       # Dashboard principal
+│   ├── CadastroVenda.tsx   # Formulário de vendas
+│   └── AcompanhamentoVendas.tsx # Lista de vendas
+├── services/               # Integrações externas
+│   └── viacep.ts          # API ViaCEP
+├── types/                  # Definições TypeScript
+│   └── venda.ts           # Tipos de vendas
+├── utils/                  # Utilitários
+│   └── localStorage.ts    # Persistência local
+└── hooks/                  # Hooks customizados
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Como Executar
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Pré-requisitos
+- Node.js 18+ e npm
+- Git
 
-**Use GitHub Codespaces**
+### Instalação
+```bash
+# 1. Clone o repositório
+git clone <URL_DO_REPOSITORIO>
+cd crm-vendas
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# 2. Instale as dependências
+npm install
 
-## What technologies are used for this project?
+# 3. Execute em modo desenvolvimento
+npm run dev
 
-This project is built with:
+# 4. Acesse no navegador
+# http://localhost:8080
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Build para Produção
+```bash
+npm run build
+npm run preview
+```
 
-## How can I deploy this project?
+## 📱 Conversão para PWA
 
-Simply open [Lovable](https://lovable.dev/projects/f67ca38f-d982-4072-9bcf-166d1520a418) and click on Share -> Publish.
+### 1. Criar Manifest (public/manifest.json)
+```json
+{
+  "name": "CRM Vendas Porta a Porta",
+  "short_name": "CRM Vendas",
+  "description": "Sistema de gerenciamento de vendas porta a porta",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+```
 
-## Can I connect a custom domain to my Lovable project?
+### 2. Service Worker (public/sw.js)
+```javascript
+const CACHE_NAME = 'crm-vendas-v1';
+const urlsToCache = [
+  '/',
+  '/static/js/bundle.js',
+  '/static/css/main.css',
+  '/manifest.json'
+];
 
-Yes, you can!
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+  );
+});
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        return response || fetch(event.request);
+      })
+  );
+});
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### 3. Registrar SW (src/main.tsx)
+```javascript
+// Adicione após render da aplicação
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registrado: ', registration);
+      })
+      .catch((registrationError) => {
+        console.log('SW falhou: ', registrationError);
+      });
+  });
+}
+```
+
+### 4. Adicionar ao HTML (index.html)
+```html
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#3b82f6">
+```
+
+## 🔧 Endpoints REST (Futura Implementação Backend)
+
+### Vendas
+```
+GET    /api/vendas           # Listar vendas
+POST   /api/vendas           # Criar venda
+PUT    /api/vendas/:id       # Atualizar venda
+DELETE /api/vendas/:id       # Excluir venda
+PATCH  /api/vendas/:id/status # Atualizar status
+```
+
+### Analytics
+```
+GET /api/analytics/vendas    # Estatísticas gerais
+GET /api/analytics/bairros   # Vendas por bairro
+GET /api/analytics/cidades   # Vendas por cidade
+```
+
+### Upload
+```
+POST /api/upload            # Upload de documentos
+```
+
+## 📊 Estrutura de Dados
+
+### Venda
+```typescript
+interface Venda {
+  id: string;
+  cliente: {
+    nome: string;
+    telefone: string;
+    email?: string;
+    cpf: string;
+    dataNascimento?: string;
+    endereco: {
+      cep: string;
+      logradouro: string;
+      numero: string;
+      complemento?: string;
+      bairro: string;
+      localidade: string;
+      uf: string;
+    };
+  };
+  documentos?: {
+    documentoCliente?: File;
+    fachadaCasa?: File;
+  };
+  status: "gerada" | "em_andamento" | "aprovada" | "perdida";
+  dataVenda: string;
+  observacoes?: string;
+}
+```
+
+## 🎨 Sistema de Design
+
+O projeto utiliza um sistema de design centralizado com:
+
+- **Cores**: Azul corporativo, verde para sucesso, cinzas neutros
+- **Tokens**: Todas as cores definidas em HSL no `index.css`
+- **Componentes**: shadcn/ui customizados
+- **Responsividade**: Mobile-first approach
+- **Animações**: Transições suaves e hover effects
+
+## 📱 PWA Features
+
+Quando convertido para PWA, o app terá:
+
+- ✅ **Instalável**: Pode ser instalado no dispositivo
+- ✅ **Offline**: Funciona sem internet (cache de dados)
+- ✅ **Responsivo**: Adaptado para mobile e desktop
+- ✅ **Seguro**: HTTPS obrigatório
+- ✅ **Performance**: Carregamento rápido
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+---
+
+**Desenvolvido com ❤️ para otimizar vendas porta a porta**
