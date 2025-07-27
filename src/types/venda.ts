@@ -44,6 +44,8 @@ export interface Venda {
   status: "gerada" | "em_andamento" | "aprovada" | "perdida";
   dataVenda: string;
   observacoes?: string;
+  vendedorId?: string; // ID do usuário que criou a venda
+  vendedorNome?: string; // Nome do vendedor (para facilitar exibição)
 }
 
 export interface VendaFormData extends Omit<Venda, "id" | "dataVenda" | "status"> {
