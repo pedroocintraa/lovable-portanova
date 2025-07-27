@@ -9,7 +9,7 @@ import {
   XCircle,
   MapPin,
   Building
-} from "lucide-react";
+} from "@/components/icons";
 
 /**
  * Página principal do dashboard com métricas e análises de vendas

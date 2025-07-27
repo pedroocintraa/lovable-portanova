@@ -39,36 +39,11 @@ class StorageService {
     });
   }
 
-  // Comprimir imagem
+  // Comprimir imagem usando utilitário otimizado
   private async compressImage(file: File): Promise<string> {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      const img = new Image();
-
-      img.onload = () => {
-        // Redimensionar para máximo 800x600
-        const maxWidth = 800;
-        const maxHeight = 600;
-        let { width, height } = img;
-
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width *= ratio;
-          height *= ratio;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Comprimir para JPEG com qualidade 0.8
-        const compressedData = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(compressedData);
-      };
-
-      img.src = URL.createObjectURL(file);
-    });
+    // Dynamic import for better code splitting
+    const { optimizeImage } = await import("@/utils/performance");
+    return optimizeImage(file, 800, 600, 0.8);
   }
 
   // Processar arquivo para armazenamento

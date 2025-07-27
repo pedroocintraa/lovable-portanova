@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DocumentoAnexado, DocumentosVenda } from "@/types/venda";
-import { FileText, Image, Download, Eye } from "lucide-react";
+import { FileText, Image, Download, Eye } from "@/components/icons";
 
 interface DocumentViewerProps {
   documentos: DocumentosVenda;

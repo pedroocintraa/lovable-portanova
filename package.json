@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/optimize-build.js",
     "build:dev": "vite build --mode development",
+    "build:analyze": "vite build && npx vite-bundle-analyzer dist",
+    "build:prod": "npm run build && npm run optimize",
+    "optimize": "node scripts/optimize-build.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -60,6 +63,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "web-vitals": "^5.0.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -77,6 +81,7 @@
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
+    "terser": "^5.43.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"

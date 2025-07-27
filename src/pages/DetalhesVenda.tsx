@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, FileText, User, MapPin, Calendar, Phone, Mail, CreditCard } from "lucide-react";
+import { ArrowLeft, Download, Eye, FileText, User, MapPin, Calendar, Phone, Mail, CreditCard } from "@/components/icons";
 import { Venda, DocumentoAnexado } from "@/types/venda";
-import { storageService } from "@/services/storageService";
 import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
 
 const DetalhesVenda = () => {
@@ -24,6 +23,7 @@ const DetalhesVenda = () => {
 
     const carregarVenda = async () => {
       try {
+        const { storageService } = await import("@/services/storageService");
         const vendaCompleta = await storageService.obterVendaCompleta(id);
         if (vendaCompleta) {
           setVenda(vendaCompleta);

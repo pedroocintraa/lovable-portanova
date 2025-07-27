@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DocumentoAnexado } from "@/types/venda";
-import { Upload, X, FileText, Image } from "lucide-react";
+import { Upload, X, FileText, Image } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 
 interface DocumentUploadProps {
