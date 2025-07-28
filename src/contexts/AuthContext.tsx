@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Usuario, FuncaoUsuario, PermissoesUsuario } from "@/types/usuario";
-import { userService } from "@/services/userService";
+import { usuariosService } from "@/services/usuariosService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   usuario: Usuario | null;
@@ -21,31 +22,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [permissoes, setPermissoes] = useState<PermissoesUsuario | null>(null);
 
   useEffect(() => {
-    // Verificar se há usuário logado ao inicializar
-    const usuarioAtual = userService.obterUsuarioAtual();
-    if (usuarioAtual) {
-      setUsuario(usuarioAtual);
-      setPermissoes(userService.obterPermissoes(usuarioAtual.funcao));
-    } else {
-      // Auto-login como administrador para testes
-      const usuarios = userService.obterUsuarios();
-      const admin = usuarios.find(u => u.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL);
-      if (admin) {
-        login(admin);
+    // Auto-login temporário como administrador de teste
+    const autoLogin = async () => {
+      try {
+        // Simular login do usuário admin@teste.com
+        await supabase.auth.signInWithPassword({
+          email: 'admin@teste.com',
+          password: 'admin123'
+        });
+        
+        const usuarios = await usuariosService.obterUsuarios();
+        const admin = usuarios.find(u => u.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL);
+        if (admin) {
+          setUsuario(admin);
+          setPermissoes(usuariosService.obterPermissoes(admin.funcao));
+        }
+      } catch (error) {
+        // Se não conseguir fazer login, criar usuário temporário para desenvolvimento
+        const adminTemp: Usuario = {
+          id: '00000000-0000-0000-0000-000000000001',
+          nome: 'ADMIN TESTE',
+          telefone: '11999999999',
+          email: 'admin@teste.com',
+          cpf: '11111111111',
+          funcao: FuncaoUsuario.ADMINISTRADOR_GERAL,
+          dataCadastro: new Date().toISOString(),
+          ativo: true
+        };
+        setUsuario(adminTemp);
+        setPermissoes(usuariosService.obterPermissoes(adminTemp.funcao));
       }
-    }
+    };
+
+    autoLogin();
   }, []);
 
   const login = (usuario: Usuario) => {
     setUsuario(usuario);
-    setPermissoes(userService.obterPermissoes(usuario.funcao));
-    userService.definirUsuarioAtual(usuario);
+    setPermissoes(usuariosService.obterPermissoes(usuario.funcao));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUsuario(null);
     setPermissoes(null);
-    userService.logout();
   };
 
   const isAuthenticated = !!usuario;
