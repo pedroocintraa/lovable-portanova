@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil, Trash2, Plus, Search, Users, UserPlus, Shield } from "lucide-react";
+import { Pencil, Trash2, Plus, Search, Users, UserPlus, Shield, Info } from "lucide-react";
 import { Equipe, EquipeFormData, EquipeComMembros } from "@/types/equipe";
 import { Usuario, FuncaoUsuario } from "@/types/usuario";
 import { equipesService } from "@/services/equipesService";
 import { usuariosService } from "@/services/usuariosService";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EquipeFormProps {
   equipe?: Equipe;
@@ -107,6 +108,7 @@ function EquipeForm({ equipe, onSubmit, onCancel }: EquipeFormProps) {
 
 export function GerenciamentoEquipes() {
   const { toast } = useToast();
+  const { permissoes } = useAuth();
   const [equipes, setEquipes] = useState<EquipeComMembros[]>([]);
   const [filteredEquipes, setFilteredEquipes] = useState<EquipeComMembros[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -308,16 +310,25 @@ export function GerenciamentoEquipes() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gerenciamento de Equipes</h1>
-        <Button onClick={handleNovaEquipe}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Equipe
-        </Button>
+        {permissoes?.podeGerenciarEquipes ? (
+          <Button onClick={handleNovaEquipe}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Equipe
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Info className="h-4 w-4" />
+            <span className="text-sm">Visualização apenas</span>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="equipes" className="space-y-6">
         <TabsList>
           <TabsTrigger value="equipes">Equipes</TabsTrigger>
-          <TabsTrigger value="membros">Gerenciar Membros</TabsTrigger>
+          {permissoes?.podeGerenciarEquipes && (
+            <TabsTrigger value="membros">Gerenciar Membros</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="equipes" className="space-y-6">
@@ -365,24 +376,26 @@ export function GerenciamentoEquipes() {
                             <p><strong>Criada em:</strong> {new Date(equipe.created_at).toLocaleDateString()}</p>
                           </div>
                           
-                          <div className="flex gap-2 pt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditarEquipe(equipe)}
-                            >
-                              <Pencil className="h-4 w-4 mr-1" />
-                              Editar
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setEquipeParaExcluir(equipe)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir
-                            </Button>
-                          </div>
+                           {permissoes?.podeGerenciarEquipes && (
+                             <div className="flex gap-2 pt-2">
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => handleEditarEquipe(equipe)}
+                               >
+                                 <Pencil className="h-4 w-4 mr-1" />
+                                 Editar
+                               </Button>
+                               <Button
+                                 variant="destructive"
+                                 size="sm"
+                                 onClick={() => setEquipeParaExcluir(equipe)}
+                               >
+                                 <Trash2 className="h-4 w-4 mr-1" />
+                                 Excluir
+                               </Button>
+                             </div>
+                           )}
                         </div>
                       </CardContent>
                     </Card>
@@ -393,7 +406,8 @@ export function GerenciamentoEquipes() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="membros" className="space-y-6">
+        {permissoes?.podeGerenciarEquipes && (
+          <TabsContent value="membros" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
@@ -483,7 +497,8 @@ export function GerenciamentoEquipes() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
 
       <AlertDialog open={!!equipeParaExcluir} onOpenChange={() => setEquipeParaExcluir(null)}>
