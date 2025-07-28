@@ -22,6 +22,7 @@ const Configuracoes = () => {
   // Estados para modais
   const [modalPlanoAberto, setModalPlanoAberto] = useState(false);
   const [planoEditando, setPlanoEditando] = useState<Plano | null>(null);
+  const [formModificado, setFormModificado] = useState(false);
 
   // Verificar se é administrador
   if (usuario?.funcao !== "ADMINISTRADOR_GERAL") {
@@ -58,6 +59,23 @@ const Configuracoes = () => {
     }
   };
 
+  const handleFecharModal = () => {
+    if (formModificado) {
+      const confirmar = confirm("Há alterações não salvas. Deseja realmente fechar?");
+      if (!confirmar) return;
+    }
+    
+    setModalPlanoAberto(false);
+    setPlanoEditando(null);
+    setFormModificado(false);
+  };
+
+  const handleAbrirModal = (plano?: Plano) => {
+    setPlanoEditando(plano || null);
+    setFormModificado(false);
+    setModalPlanoAberto(true);
+  };
+
 
   const handleSalvarPlano = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -81,6 +99,7 @@ const Configuracoes = () => {
       
       setModalPlanoAberto(false);
       setPlanoEditando(null);
+      setFormModificado(false);
       carregarPlanos();
     } catch (error) {
       toast({
@@ -124,14 +143,14 @@ const Configuracoes = () => {
             <CardDescription>Gerencie os planos disponíveis para os clientes</CardDescription>
           </div>
           
-          <Dialog open={modalPlanoAberto} onOpenChange={setModalPlanoAberto}>
+          <Dialog open={modalPlanoAberto} onOpenChange={() => {}}>
             <DialogTrigger asChild>
-              <Button onClick={() => setPlanoEditando(null)}>
+              <Button onClick={() => handleAbrirModal()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Plano
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent onInteractOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>{planoEditando ? "Editar Plano" : "Novo Plano"}</DialogTitle>
                 <DialogDescription>
@@ -146,6 +165,7 @@ const Configuracoes = () => {
                     id="nome" 
                     name="nome" 
                     defaultValue={planoEditando?.nome || ""}
+                    onChange={() => setFormModificado(true)}
                     required 
                   />
                 </div>
@@ -156,6 +176,7 @@ const Configuracoes = () => {
                     id="descricao" 
                     name="descricao" 
                     defaultValue={planoEditando?.descricao || ""}
+                    onChange={() => setFormModificado(true)}
                   />
                 </div>
                 
@@ -167,6 +188,7 @@ const Configuracoes = () => {
                     type="number" 
                     step="0.01"
                     defaultValue={planoEditando?.valor || ""}
+                    onChange={() => setFormModificado(true)}
                   />
                 </div>
                 
@@ -175,11 +197,15 @@ const Configuracoes = () => {
                     id="ativo" 
                     name="ativo" 
                     defaultChecked={planoEditando?.ativo ?? true}
+                    onCheckedChange={() => setFormModificado(true)}
                   />
                   <Label htmlFor="ativo">Ativo</Label>
                 </div>
                 
-                <DialogFooter>
+                <DialogFooter className="gap-2">
+                  <Button type="button" variant="outline" onClick={handleFecharModal}>
+                    Cancelar
+                  </Button>
                   <Button type="submit">
                     {planoEditando ? "Atualizar" : "Criar"}
                   </Button>
@@ -209,10 +235,7 @@ const Configuracoes = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setPlanoEditando(plano);
-                        setModalPlanoAberto(true);
-                      }}
+                      onClick={() => handleAbrirModal(plano)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
