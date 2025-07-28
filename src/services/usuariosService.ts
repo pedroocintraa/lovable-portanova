@@ -35,96 +35,37 @@ class UsuariosService {
 
   async salvarUsuario(usuario: Omit<Usuario, 'id' | 'data_cadastro' | 'ativo'>): Promise<Usuario> {
     try {
-      // Validar unicidade antes de inserir
-      const validacaoEmail = await this.validarEmailUnico(usuario.email);
-      if (!validacaoEmail.unico) {
-        if (validacaoEmail.usuarioInativo) {
-          throw new Error(`Já existe um usuário inativo cadastrado com este email (${validacaoEmail.usuarioInativo.nome}). Reative o usuário existente ou escolha um email diferente.`);
-        }
-        throw new Error('Este email já está sendo utilizado por outro usuário.');
-      }
+      console.log('Iniciando criação de usuário via Edge Function:', usuario.email);
 
-      const validacaoCpf = await this.validarCpfUnico(usuario.cpf);
-      if (!validacaoCpf.unico) {
-        if (validacaoCpf.usuarioInativo) {
-          throw new Error(`Já existe um usuário inativo cadastrado com este CPF (${validacaoCpf.usuarioInativo.nome}). Reative o usuário existente ou escolha um CPF diferente.`);
-        }
-        throw new Error('Este CPF já está sendo utilizado por outro usuário.');
-      }
-
-      console.log('Iniciando criação de usuário com Supabase Auth');
-
-      // Etapa 1: Criar usuário no Supabase Auth
-      const senhaTemporaria = this.gerarSenhaTemporaria();
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: usuario.email.toLowerCase(),
-        password: senhaTemporaria,
-        email_confirm: true,
-        user_metadata: {
-          nome: usuario.nome.toUpperCase(),
-          funcao: usuario.funcao
-        }
+      // Chamar Edge Function para criar usuário
+      const { data: response, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+          nome: usuario.nome,
+          telefone: usuario.telefone,
+          email: usuario.email,
+          cpf: usuario.cpf,
+          funcao: usuario.funcao,
+          equipeId: usuario.equipeId || null,
+          supervisorEquipeId: usuario.supervisorEquipeId || null,
+        },
       });
 
-      if (authError) {
-        console.error('Erro ao criar usuário no Auth:', authError);
-        if (authError.message.includes('email address is already in use')) {
-          throw new Error('Este email já está sendo utilizado por outro usuário.');
-        }
-        throw new Error(`Erro ao criar usuário: ${authError.message}`);
+      if (functionError) {
+        console.error('Erro na Edge Function:', functionError);
+        throw new Error(`Erro ao criar usuário: ${functionError.message}`);
       }
 
-      console.log('Usuário criado no Auth:', authUser.user?.id);
-
-      // Etapa 2: Inserir dados complementares na tabela usuarios
-      const usuarioFormatado = {
-        id: authUser.user!.id, // Usar o mesmo ID do auth.users
-        nome: usuario.nome.toUpperCase(),
-        telefone: usuario.telefone,
-        email: usuario.email.toLowerCase(),
-        cpf: usuario.cpf,
-        funcao: usuario.funcao,
-        equipe_id: usuario.equipeId || null,
-        supervisor_equipe_id: usuario.supervisorEquipeId || null
-      };
-
-      console.log('Salvando dados complementares do usuário:', usuarioFormatado);
-
-      const { data, error } = await supabase
-        .from('usuarios')
-        .insert([usuarioFormatado])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao salvar dados complementares:', error);
-        
-        // Se falhar ao salvar na tabela usuarios, limpar o usuário do auth
-        try {
-          await supabase.auth.admin.deleteUser(authUser.user!.id);
-          console.log('Usuário removido do auth devido ao erro');
-        } catch (cleanupError) {
-          console.error('Erro ao limpar usuário do auth:', cleanupError);
-        }
-        
-        // Tratar erros específicos
-        if (error.code === '23505') {
-          if (error.message.includes('usuarios_email_key')) {
-            throw new Error('Este email já está sendo utilizado por outro usuário.');
-          }
-          if (error.message.includes('usuarios_cpf_key')) {
-            throw new Error('Este CPF já está sendo utilizado por outro usuário.');
-          }
-          throw new Error('Já existe um usuário com estes dados.');
-        }
-        
-        throw new Error(`Erro ao salvar dados do usuário: ${error.message}`);
+      if (response.error) {
+        console.error('Erro retornado pela Edge Function:', response.error);
+        throw new Error(response.error);
       }
 
-      console.log('Usuário criado com sucesso! ID:', data.id, 'Email será enviado automaticamente');
-      return this.converterParaUsuario(data);
+      console.log('Usuário criado com sucesso via Edge Function:', response.user);
+      console.log('Senha temporária gerada:', response.tempPassword);
+      
+      return this.converterParaUsuario(response.user);
     } catch (error) {
-      console.error('Erro no serviço de usuários:', error);
+      console.error('Erro completo na criação de usuário:', error);
       throw error;
     }
   }
