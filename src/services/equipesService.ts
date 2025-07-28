@@ -19,26 +19,47 @@ class EquipesService {
   }
 
   async obterEquipesComMembros(): Promise<EquipeComMembros[]> {
-    const { data: equipes, error: equipesError } = await supabase
-      .from('equipes')
-      .select(`
-        *,
-        usuarios!usuarios_equipe_id_fkey(count),
-        supervisor:usuarios!usuarios_supervisor_equipe_id_fkey(nome)
-      `)
-      .eq('ativo', true)
-      .order('nome');
-    
-    if (equipesError) {
-      console.error('Erro ao buscar equipes com membros:', equipesError);
-      throw new Error('Erro ao carregar equipes');
+    try {
+      // Primeiro, buscar todas as equipes
+      const equipes = await this.obterEquipes();
+      
+      // Depois, buscar contagem de membros para cada equipe
+      const equipesComMembros: EquipeComMembros[] = [];
+      
+      for (const equipe of equipes) {
+        // Contar membros da equipe
+        const { count: membros } = await supabase
+          .from('usuarios')
+          .select('*', { count: 'exact', head: true })
+          .eq('equipe_id', equipe.id)
+          .eq('ativo', true);
+        
+        // Buscar supervisor da equipe
+        const { data: supervisorData } = await supabase
+          .from('usuarios')
+          .select('nome')
+          .eq('supervisor_equipe_id', equipe.id)
+          .eq('ativo', true)
+          .maybeSingle();
+        
+        equipesComMembros.push({
+          ...equipe,
+          membros: membros || 0,
+          supervisor: supervisorData?.nome
+        });
+      }
+      
+      return equipesComMembros;
+    } catch (error) {
+      console.error('Erro ao buscar equipes com membros:', error);
+      // Fallback: retornar equipes sem informações de membros
+      const equipes = await this.obterEquipes();
+      return equipes.map(equipe => ({
+        ...equipe,
+        membros: 0,
+        supervisor: undefined
+      }));
     }
-    
-    return (equipes || []).map(equipe => ({
-      ...equipe,
-      membros: equipe.usuarios?.length || 0,
-      supervisor: equipe.supervisor?.[0]?.nome
-    }));
   }
 
   async obterEquipePorId(id: string): Promise<Equipe | null> {

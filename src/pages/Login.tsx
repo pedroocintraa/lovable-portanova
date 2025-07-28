@@ -20,7 +20,7 @@ export default function Login() {
   // Redirecionar se já estiver autenticado
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [isAuthenticated, authLoading, navigate]);
 

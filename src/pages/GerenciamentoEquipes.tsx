@@ -141,11 +141,27 @@ export function GerenciamentoEquipes() {
       setEquipes(equipesData);
     } catch (error) {
       console.error('Erro ao carregar equipes:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar equipes",
-        variant: "destructive",
-      });
+      // Fallback: tentar carregar apenas as equipes básicas
+      try {
+        const equipesBasicas = await equipesService.obterEquipes();
+        const equipesComMembrosVazio = equipesBasicas.map(e => ({
+          ...e,
+          membros: 0,
+          supervisor: undefined
+        }));
+        setEquipes(equipesComMembrosVazio);
+        toast({
+          title: "Aviso",
+          description: "Informações de membros não disponíveis",
+          variant: "default",
+        });
+      } catch (fallbackError) {
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar equipes",
+          variant: "destructive",
+        });
+      }
     }
   };
 
