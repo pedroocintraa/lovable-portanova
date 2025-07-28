@@ -35,6 +35,7 @@ export interface DocumentosVenda {
   documentoClienteVerso?: DocumentoAnexado[];
   comprovanteEndereco?: DocumentoAnexado[];
   fachadaCasa?: DocumentoAnexado[];
+  selfieCliente?: DocumentoAnexado[];
 }
 
 export interface Venda {
@@ -46,6 +47,8 @@ export interface Venda {
   observacoes?: string;
   vendedorId?: string; // ID do usuário que criou a venda
   vendedorNome?: string; // Nome do vendedor (para facilitar exibição)
+  planoId?: string; // ID do plano selecionado
+  dataVencimento?: string; // Data de vencimento calculada
 }
 
 export interface VendaFormData extends Omit<Venda, "id" | "dataVenda" | "status"> {

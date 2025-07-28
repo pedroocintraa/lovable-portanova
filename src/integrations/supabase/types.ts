@@ -58,6 +58,33 @@ export type Database = {
           },
         ]
       }
+      datas_vencimento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string
+          dias: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao: string
+          dias: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string
+          dias?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documentos_venda: {
         Row: {
           data_upload: string | null
@@ -180,6 +207,36 @@ export type Database = {
           },
         ]
       }
+      planos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: []
+      }
       usuarios: {
         Row: {
           ativo: boolean | null
@@ -223,9 +280,11 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string | null
+          data_vencimento: string | null
           data_venda: string | null
           id: string
           observacoes: string | null
+          plano_id: string | null
           status: Database["public"]["Enums"]["status_venda"] | null
           updated_at: string | null
           vendedor_id: string
@@ -234,9 +293,11 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string | null
+          data_vencimento?: string | null
           data_venda?: string | null
           id?: string
           observacoes?: string | null
+          plano_id?: string | null
           status?: Database["public"]["Enums"]["status_venda"] | null
           updated_at?: string | null
           vendedor_id: string
@@ -245,9 +306,11 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string | null
+          data_vencimento?: string | null
           data_venda?: string | null
           id?: string
           observacoes?: string | null
+          plano_id?: string | null
           status?: Database["public"]["Enums"]["status_venda"] | null
           updated_at?: string | null
           vendedor_id?: string
@@ -259,6 +322,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
             referencedColumns: ["id"]
           },
           {
@@ -300,6 +370,7 @@ export type Database = {
         | "documento_cliente_verso"
         | "comprovante_endereco"
         | "fachada_casa"
+        | "selfie_cliente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -434,6 +505,7 @@ export const Constants = {
         "documento_cliente_verso",
         "comprovante_endereco",
         "fachada_casa",
+        "selfie_cliente",
       ],
     },
   },

@@ -12,7 +12,8 @@ import {
   UserCog,
   Home,
   Plus,
-  Eye
+  Eye,
+  Settings
 } from "lucide-react";
 
 /**
@@ -48,6 +49,12 @@ export const Navbar = () => {
       label: "Usuários", 
       icon: UserCog,
       permitido: permissoes?.podeGerenciarUsuarios
+    },
+    { 
+      path: "/configuracoes", 
+      label: "Configurações", 
+      icon: Settings,
+      permitido: usuario?.funcao === "ADMINISTRADOR_GERAL"
     },
   ].filter(item => item.permitido);
 

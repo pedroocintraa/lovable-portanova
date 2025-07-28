@@ -10,6 +10,7 @@ import CadastroVenda from "./pages/CadastroVenda";
 import AcompanhamentoVendas from "./pages/AcompanhamentoVendas";
 import DetalhesVenda from "./pages/DetalhesVenda";
 import GerenciamentoUsuarios from "./pages/GerenciamentoUsuarios";
+import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
                 <Route path="/acompanhamento" element={<AcompanhamentoVendas />} />
                 <Route path="/venda/:id" element={<DetalhesVenda />} />
                 <Route path="/usuarios" element={<GerenciamentoUsuarios />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

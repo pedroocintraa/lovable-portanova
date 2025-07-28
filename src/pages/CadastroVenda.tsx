@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { buscarEnderecoPorCep, formatarCep, validarCep } from "@/services/viacep";
-// Import removido - agora usando storageService
+import { configuracaoService } from "@/services/configuracaoService";
 import { Venda, VendaFormData, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
-import { Loader2, User, MapPin } from "lucide-react";
+import type { Plano, DataVencimento } from "@/types/configuracao";
+import { Loader2, User, MapPin, Settings, CreditCard, Calendar, Camera } from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Página de cadastro de nova venda
@@ -23,12 +26,42 @@ const CadastroVenda = () => {
     documentoClienteFrente: [],
     documentoClienteVerso: [],
     comprovanteEndereco: [],
-    fachadaCasa: []
+    fachadaCasa: [],
+    selfieCliente: []
   });
+  const [planos, setPlanos] = useState<Plano[]>([]);
+  const [datasVencimento, setDatasVencimento] = useState<DataVencimento[]>([]);
+  const [planoSelecionado, setPlanoSelecionado] = useState<string>("");
+  const [dataVencimentoSelecionada, setDataVencimentoSelecionada] = useState<string>("");
+  const [isLoadingConfiguracoes, setIsLoadingConfiguracoes] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { usuario } = useAuth();
 
   const cepValue = watch("cliente.endereco.cep");
+
+  useEffect(() => {
+    carregarConfiguracoes();
+  }, []);
+
+  const carregarConfiguracoes = async () => {
+    try {
+      const [planosData, datasData] = await Promise.all([
+        configuracaoService.obterPlanosAtivos(),
+        configuracaoService.obterDatasVencimentoAtivas()
+      ]);
+      setPlanos(planosData);
+      setDatasVencimento(datasData);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar configurações",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingConfiguracoes(false);
+    }
+  };
 
   /**
    * Busca endereço automaticamente quando CEP é preenchido
@@ -81,7 +114,41 @@ const CadastroVenda = () => {
    * Submete o formulário e salva a venda
    */
   const onSubmit = async (data: VendaFormData) => {
+    // Validar campos obrigatórios
+    if (!planoSelecionado) {
+      toast({
+        title: "Erro",
+        description: "Selecione um plano",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!dataVencimentoSelecionada) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma data de vencimento",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!documentos.selfieCliente || documentos.selfieCliente.length === 0) {
+      toast({
+        title: "Erro",
+        description: "A selfie do cliente é obrigatória",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      const planoSelecionadoObj = planos.find(p => p.id === planoSelecionado);
+      const dataVencimentoObj = datasVencimento.find(d => d.id === dataVencimentoSelecionada);
+      
+      const dataVencimentoCalculada = new Date();
+      dataVencimentoCalculada.setDate(dataVencimentoCalculada.getDate() + (dataVencimentoObj?.dias || 30));
+
       const novaVenda: Venda = {
         id: `venda_${Date.now()}`,
         cliente: data.cliente,
@@ -89,6 +156,10 @@ const CadastroVenda = () => {
         status: "gerada",
         dataVenda: new Date().toISOString(),
         observacoes: data.observacoes,
+        vendedorId: usuario?.id,
+        vendedorNome: usuario?.nome,
+        planoId: planoSelecionado,
+        dataVencimento: dataVencimentoCalculada.toISOString().split('T')[0]
       };
 
       // Usar o novo serviço de armazenamento
@@ -292,39 +363,122 @@ const CadastroVenda = () => {
           </CardContent>
         </Card>
 
+        {/* Informações da Venda */}
+        <Card className="bg-gradient-card shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Settings className="h-5 w-5 text-primary" />
+              <span>Informações da Venda</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoadingConfiguracoes ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2">Carregando configurações...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="plano">Plano do Cliente *</Label>
+                  <Select value={planoSelecionado} onValueChange={setPlanoSelecionado}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um plano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {planos.map((plano) => (
+                        <SelectItem key={plano.id} value={plano.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{plano.nome}</span>
+                            {plano.valor && (
+                              <span className="ml-2 text-sm text-muted-foreground">
+                                R$ {plano.valor.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="dataVencimento">Data de Vencimento *</Label>
+                  <Select value={dataVencimentoSelecionada} onValueChange={setDataVencimentoSelecionada}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o prazo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {datasVencimento.map((data) => (
+                        <SelectItem key={data.id} value={data.id}>
+                          {data.descricao}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Upload de Documentos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DocumentUpload
-            titulo="Documento Cliente - Frente"
-            documentos={documentos.documentoClienteFrente || []}
-            onDocumentosChange={(docs) => handleDocumentosChange('documentoClienteFrente', docs)}
-            acceptTypes="image/*,.pdf"
-            maxFiles={2}
-          />
-          
-          <DocumentUpload
-            titulo="Documento Cliente - Verso"
-            documentos={documentos.documentoClienteVerso || []}
-            onDocumentosChange={(docs) => handleDocumentosChange('documentoClienteVerso', docs)}
-            acceptTypes="image/*,.pdf"
-            maxFiles={2}
-          />
-          
-          <DocumentUpload
-            titulo="Comprovante de Endereço"
-            documentos={documentos.comprovanteEndereco || []}
-            onDocumentosChange={(docs) => handleDocumentosChange('comprovanteEndereco', docs)}
-            acceptTypes="image/*,.pdf"
-            maxFiles={3}
-          />
-          
-          <DocumentUpload
-            titulo="Fachada da Casa"
-            documentos={documentos.fachadaCasa || []}
-            onDocumentosChange={(docs) => handleDocumentosChange('fachadaCasa', docs)}
-            acceptTypes="image/*"
-            maxFiles={3}
-          />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DocumentUpload
+              titulo="Documento Cliente - Frente"
+              documentos={documentos.documentoClienteFrente || []}
+              onDocumentosChange={(docs) => handleDocumentosChange('documentoClienteFrente', docs)}
+              acceptTypes="image/*,.pdf"
+              maxFiles={2}
+            />
+            
+            <DocumentUpload
+              titulo="Documento Cliente - Verso"
+              documentos={documentos.documentoClienteVerso || []}
+              onDocumentosChange={(docs) => handleDocumentosChange('documentoClienteVerso', docs)}
+              acceptTypes="image/*,.pdf"
+              maxFiles={2}
+            />
+            
+            <DocumentUpload
+              titulo="Comprovante de Endereço"
+              documentos={documentos.comprovanteEndereco || []}
+              onDocumentosChange={(docs) => handleDocumentosChange('comprovanteEndereco', docs)}
+              acceptTypes="image/*,.pdf"
+              maxFiles={3}
+            />
+            
+            <DocumentUpload
+              titulo="Fachada da Casa"
+              documentos={documentos.fachadaCasa || []}
+              onDocumentosChange={(docs) => handleDocumentosChange('fachadaCasa', docs)}
+              acceptTypes="image/*"
+              maxFiles={3}
+            />
+          </div>
+
+          {/* Selfie do Cliente */}
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Camera className="h-5 w-5 text-primary" />
+                <span>Selfie do Cliente</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DocumentUpload
+                titulo="Selfie do Cliente *"
+                documentos={documentos.selfieCliente || []}
+                onDocumentosChange={(docs) => handleDocumentosChange('selfieCliente', docs)}
+                acceptTypes="image/*"
+                maxFiles={1}
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                A selfie do cliente é obrigatória para validação da identidade
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Ações */}
