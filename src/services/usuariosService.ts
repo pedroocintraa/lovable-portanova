@@ -36,13 +36,19 @@ class UsuariosService {
   async salvarUsuario(usuario: Omit<Usuario, 'id' | 'data_cadastro' | 'ativo'>): Promise<Usuario> {
     try {
       // Validar unicidade antes de inserir
-      const emailExiste = await this.validarEmailUnico(usuario.email);
-      if (!emailExiste) {
+      const validacaoEmail = await this.validarEmailUnico(usuario.email);
+      if (!validacaoEmail.unico) {
+        if (validacaoEmail.usuarioInativo) {
+          throw new Error(`Já existe um usuário inativo cadastrado com este email (${validacaoEmail.usuarioInativo.nome}). Reative o usuário existente ou escolha um email diferente.`);
+        }
         throw new Error('Este email já está sendo utilizado por outro usuário.');
       }
 
-      const cpfExiste = await this.validarCpfUnico(usuario.cpf);
-      if (!cpfExiste) {
+      const validacaoCpf = await this.validarCpfUnico(usuario.cpf);
+      if (!validacaoCpf.unico) {
+        if (validacaoCpf.usuarioInativo) {
+          throw new Error(`Já existe um usuário inativo cadastrado com este CPF (${validacaoCpf.usuarioInativo.nome}). Reative o usuário existente ou escolha um CPF diferente.`);
+        }
         throw new Error('Este CPF já está sendo utilizado por outro usuário.');
       }
 
@@ -245,12 +251,11 @@ class UsuariosService {
     return this.desativarUsuario(id);
   }
 
-  async validarEmailUnico(email: string, usuarioId?: string): Promise<boolean> {
+  async validarEmailUnico(email: string, usuarioId?: string): Promise<{ unico: boolean; usuarioInativo?: Usuario }> {
     let query = supabase
       .from('usuarios')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .eq('ativo', true);
+      .select('*')
+      .eq('email', email.toLowerCase());
 
     if (usuarioId) {
       query = query.neq('id', usuarioId);
@@ -260,18 +265,30 @@ class UsuariosService {
 
     if (error) {
       console.error('Erro ao validar email:', error);
-      return false;
+      return { unico: false };
     }
 
-    return data.length === 0;
+    if (data.length === 0) {
+      return { unico: true };
+    }
+
+    // Verificar se existe usuário inativo com este email
+    const usuarioInativo = data.find(u => !u.ativo);
+    if (usuarioInativo) {
+      return { 
+        unico: false, 
+        usuarioInativo: this.converterParaUsuario(usuarioInativo) 
+      };
+    }
+
+    return { unico: false };
   }
 
-  async validarCpfUnico(cpf: string, usuarioId?: string): Promise<boolean> {
+  async validarCpfUnico(cpf: string, usuarioId?: string): Promise<{ unico: boolean; usuarioInativo?: Usuario }> {
     let query = supabase
       .from('usuarios')
-      .select('id')
-      .eq('cpf', cpf)
-      .eq('ativo', true);
+      .select('*')
+      .eq('cpf', cpf);
 
     if (usuarioId) {
       query = query.neq('id', usuarioId);
@@ -281,10 +298,23 @@ class UsuariosService {
 
     if (error) {
       console.error('Erro ao validar CPF:', error);
-      return false;
+      return { unico: false };
     }
 
-    return data.length === 0;
+    if (data.length === 0) {
+      return { unico: true };
+    }
+
+    // Verificar se existe usuário inativo com este CPF
+    const usuarioInativo = data.find(u => !u.ativo);
+    if (usuarioInativo) {
+      return { 
+        unico: false, 
+        usuarioInativo: this.converterParaUsuario(usuarioInativo) 
+      };
+    }
+
+    return { unico: false };
   }
 
   async obterUsuariosPorEquipe(equipeId: string): Promise<Usuario[]> {
@@ -313,6 +343,85 @@ class UsuariosService {
     if (error) {
       console.error('Erro ao atribuir supervisor:', error);
       throw new Error('Erro ao atribuir supervisor à equipe');
+    }
+  }
+
+  async excluirUsuarioPermanentemente(id: string): Promise<boolean> {
+    try {
+      // 1. Verificar se é o último administrador geral
+      const { data: admins } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('funcao', FuncaoUsuario.ADMINISTRADOR_GERAL)
+        .eq('ativo', true);
+
+      if (admins && admins.length === 1 && admins[0].id === id) {
+        throw new Error('Não é possível excluir o último administrador geral do sistema');
+      }
+
+      // 2. Excluir do auth.users (Supabase Auth)
+      const { error: authError } = await supabase.auth.admin.deleteUser(id);
+      if (authError && !authError.message.includes('User not found')) {
+        console.error('Erro ao excluir do Supabase Auth:', authError);
+        throw new Error('Erro ao excluir usuário do sistema de autenticação');
+      }
+
+      // 3. Excluir da tabela usuarios
+      const { error: dbError } = await supabase
+        .from('usuarios')
+        .delete()
+        .eq('id', id);
+
+      if (dbError) {
+        console.error('Erro ao excluir da tabela usuarios:', dbError);
+        throw new Error('Erro ao excluir usuário do banco de dados');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erro ao excluir usuário permanentemente:', error);
+      throw error;
+    }
+  }
+
+  async sincronizarUsuarios(): Promise<{ removidos: number; erros: string[] }> {
+    try {
+      const { data: usuariosCRM } = await supabase
+        .from('usuarios')
+        .select('id, email, nome');
+
+      if (!usuariosCRM) return { removidos: 0, erros: [] };
+
+      let removidos = 0;
+      const erros: string[] = [];
+
+      for (const usuario of usuariosCRM) {
+        try {
+          const { data: authUser, error } = await supabase.auth.admin.getUserById(usuario.id);
+          
+          if (error || !authUser.user) {
+            // Usuário não existe no Supabase Auth, remover do CRM
+            const { error: deleteError } = await supabase
+              .from('usuarios')
+              .delete()
+              .eq('id', usuario.id);
+
+            if (deleteError) {
+              erros.push(`Erro ao remover ${usuario.nome} (${usuario.email}): ${deleteError.message}`);
+            } else {
+              removidos++;
+              console.log(`Usuário ${usuario.nome} removido por inconsistência`);
+            }
+          }
+        } catch (error: any) {
+          erros.push(`Erro ao verificar ${usuario.nome}: ${error.message}`);
+        }
+      }
+
+      return { removidos, erros };
+    } catch (error: any) {
+      console.error('Erro na sincronização:', error);
+      return { removidos: 0, erros: [error.message] };
     }
   }
 

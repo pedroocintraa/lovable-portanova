@@ -73,7 +73,7 @@ export default function GerenciamentoUsuarios() {
     setUsuariosFiltrados(resultado);
   };
 
-  const handleSalvarUsuario = async (usuario: Usuario) => {
+  const handleSalvarUsuario = async (usuario: any) => {
     try {
       if (usuarioEditando) {
         await usuariosService.atualizarUsuario(usuarioEditando.id, usuario);
@@ -89,21 +89,30 @@ export default function GerenciamentoUsuarios() {
         title: "Sucesso",
         description: `Usuário ${usuarioEditando ? "atualizado" : "cadastrado"} com sucesso!`,
       });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao salvar usuário. Tente novamente.",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      // Verificar se é erro de usuário já existente
+      if (error.message && error.message.includes('já existe um usuário')) {
+        toast({
+          title: "Usuário já cadastrado",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: error.message || "Erro ao salvar usuário. Tente novamente.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
-  const handleExcluirUsuario = async (id: string) => {
+  const handleDesativarUsuario = async (id: string) => {
     // Verificar se é administrador geral
     if (usuarioLogado?.funcao !== FuncaoUsuario.ADMINISTRADOR_GERAL) {
       toast({
         title: "Acesso Negado",
-        description: "Apenas administradores gerais podem excluir usuários",
+        description: "Apenas administradores gerais podem desativar usuários",
         variant: "destructive"
       });
       return;
@@ -120,6 +129,41 @@ export default function GerenciamentoUsuarios() {
       toast({
         title: "Erro",
         description: error.message || "Erro ao desativar usuário",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExcluirPermanentemente = async (id: string, nome: string) => {
+    // Verificar se é administrador geral
+    if (usuarioLogado?.funcao !== FuncaoUsuario.ADMINISTRADOR_GERAL) {
+      toast({
+        title: "Acesso Negado",
+        description: "Apenas administradores gerais podem excluir usuários permanentemente",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!window.confirm(`ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nTem certeza que deseja excluir permanentemente o usuário "${nome}"?\n\nTodos os dados serão perdidos definitivamente.`)) {
+      return;
+    }
+
+    if (!window.confirm("Confirme novamente: Esta exclusão é PERMANENTE e não pode ser desfeita!")) {
+      return;
+    }
+
+    try {
+      await usuariosService.excluirUsuarioPermanentemente(id);
+      carregarUsuarios();
+      toast({
+        title: "Sucesso",
+        description: "Usuário excluído permanentemente!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir usuário",
         variant: "destructive"
       });
     }
@@ -311,7 +355,7 @@ export default function GerenciamentoUsuarios() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => handleExcluirUsuario(usuario.id)}
+                                  onClick={() => handleDesativarUsuario(usuario.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   Desativar
@@ -320,31 +364,59 @@ export default function GerenciamentoUsuarios() {
                             </AlertDialogContent>
                           </AlertDialog>
                         ) : (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <RotateCcw className="h-4 w-4 text-green-600" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar Reativação</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja reativar o usuário {usuario.nome}?
-                                  O usuário voltará a ter acesso ao sistema.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleReativarUsuario(usuario.id)}
-                                  className="bg-green-600 text-white hover:bg-green-700"
-                                >
-                                  Reativar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <div className="flex gap-1">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <RotateCcw className="h-4 w-4 text-green-600" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar Reativação</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja reativar o usuário {usuario.nome}?
+                                    O usuário voltará a ter acesso ao sistema.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleReativarUsuario(usuario.id)}
+                                    className="bg-green-600 text-white hover:bg-green-700"
+                                  >
+                                    Reativar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="h-4 w-4 text-red-800" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>⚠️ EXCLUSÃO PERMANENTE</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <strong>ATENÇÃO: Esta ação é IRREVERSÍVEL!</strong><br/><br/>
+                                    Você está prestes a excluir permanentemente o usuário <strong>{usuario.nome}</strong>.<br/><br/>
+                                    Todos os dados serão perdidos definitivamente e não poderão ser recuperados.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleExcluirPermanentemente(usuario.id, usuario.nome)}
+                                    className="bg-red-800 text-white hover:bg-red-900"
+                                  >
+                                    Excluir Permanentemente
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         )}
                       </>
                     )}
