@@ -393,8 +393,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_equipe_usuario_atual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_funcao_usuario: {
         Args: { user_id?: string }
+        Returns: Database["public"]["Enums"]["funcao_usuario"]
+      }
+      get_funcao_usuario_atual: {
+        Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["funcao_usuario"]
       }
       get_user_company: {
@@ -404,6 +412,10 @@ export type Database = {
       get_usuario_atual: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       is_admin_or_supervisor: {
         Args: Record<PropertyKey, never>

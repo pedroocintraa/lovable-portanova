@@ -13,7 +13,8 @@ import {
   Home,
   Plus,
   Eye,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react";
 
 /**
@@ -23,7 +24,11 @@ import {
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const { usuario, permissoes } = useAuth();
+  const { usuario, permissoes, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   const menuItems = [
     { 
@@ -113,6 +118,15 @@ export const Navbar = () => {
                     {usuario.funcao.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                   </Badge>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Sair"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </div>
@@ -140,12 +154,24 @@ export const Navbar = () => {
               {/* Informações do usuário - Mobile */}
               {usuario && (
                 <div className="px-3 py-2 mb-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium text-foreground">
-                    {usuario.nome}
-                  </p>
-                  <Badge variant="secondary" className="text-xs mt-1">
-                    {usuario.funcao.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                  </Badge>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {usuario.nome}
+                      </p>
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        {usuario.funcao.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
               

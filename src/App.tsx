@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Layout/Navbar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import CadastroVenda from "./pages/CadastroVenda";
 import AcompanhamentoVendas from "./pages/AcompanhamentoVendas";
@@ -12,6 +13,7 @@ import DetalhesVenda from "./pages/DetalhesVenda";
 import GerenciamentoUsuarios from "./pages/GerenciamentoUsuarios";
 import GerenciamentoEquipes from "./pages/GerenciamentoEquipes";
 import Configuracoes from "./pages/Configuracoes";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,19 +26,26 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <div className="min-h-screen bg-background">
-            <Navbar />
-            <main className="container mx-auto px-4 py-8">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/vendas" element={<CadastroVenda />} />
-                <Route path="/acompanhamento" element={<AcompanhamentoVendas />} />
-                <Route path="/venda/:id" element={<DetalhesVenda />} />
-                <Route path="/usuarios" element={<GerenciamentoUsuarios />} />
-                <Route path="/equipes" element={<GerenciamentoEquipes />} />
-                <Route path="/configuracoes" element={<Configuracoes />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/vendas" element={<CadastroVenda />} />
+                      <Route path="/acompanhamento" element={<AcompanhamentoVendas />} />
+                      <Route path="/venda/:id" element={<DetalhesVenda />} />
+                      <Route path="/usuarios" element={<GerenciamentoUsuarios />} />
+                      <Route path="/equipes" element={<GerenciamentoEquipes />} />
+                      <Route path="/configuracoes" element={<Configuracoes />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </main>
+                </ProtectedRoute>
+              } />
+            </Routes>
           </div>
         </BrowserRouter>
       </AuthProvider>
