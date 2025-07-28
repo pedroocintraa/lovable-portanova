@@ -363,7 +363,11 @@ export type Database = {
       }
     }
     Enums: {
-      funcao_usuario: "ADMINISTRADOR_GERAL" | "SUPERVISOR" | "VENDEDOR"
+      funcao_usuario:
+        | "ADMINISTRADOR_GERAL"
+        | "SUPERVISOR"
+        | "VENDEDOR"
+        | "SUPERVISOR_EQUIPE"
       status_venda: "gerada" | "em_andamento" | "aprovada" | "perdida"
       tipo_documento:
         | "documento_cliente_frente"
@@ -498,7 +502,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      funcao_usuario: ["ADMINISTRADOR_GERAL", "SUPERVISOR", "VENDEDOR"],
+      funcao_usuario: [
+        "ADMINISTRADOR_GERAL",
+        "SUPERVISOR",
+        "VENDEDOR",
+        "SUPERVISOR_EQUIPE",
+      ],
       status_venda: ["gerada", "em_andamento", "aprovada", "perdida"],
       tipo_documento: [
         "documento_cliente_frente",
