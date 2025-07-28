@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Equipe } from "@/types/equipe";
 import { usuariosService } from "@/services/usuariosService";
 import { equipesService } from "@/services/equipesService";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface UserFormProps {
   usuario?: Usuario;
@@ -30,6 +31,8 @@ export function UserForm({ usuario, onSubmit, onCancel }: UserFormProps) {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isValidatingCpf, setIsValidatingCpf] = useState(false);
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
 
   useEffect(() => {
     carregarEquipes();
@@ -103,25 +106,91 @@ export function UserForm({ usuario, onSubmit, onCancel }: UserFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (await validateForm()) {
-      const userData: UsuarioFormData = {
-        nome: formData.nome,
-        telefone: usuariosService.formatarTelefone(formData.telefone),
-        email: formData.email,
-        cpf: usuariosService.formatarCpf(formData.cpf),
-        funcao: formData.funcao,
-        equipeId: formData.equipeId || undefined,
-        supervisorEquipeId: formData.supervisorEquipeId || undefined
-      };
+    try {
+      if (await validateForm()) {
+        const userData: UsuarioFormData = {
+          nome: formData.nome.toUpperCase(), // Garantir que o nome seja em maiúsculas
+          telefone: usuariosService.formatarTelefone(formData.telefone),
+          email: formData.email.toLowerCase(), // Garantir email em minúsculas
+          cpf: usuariosService.formatarCpf(formData.cpf),
+          funcao: formData.funcao,
+          equipeId: formData.equipeId || undefined,
+          supervisorEquipeId: formData.supervisorEquipeId || undefined
+        };
+        
+        onSubmit(userData);
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar usuário:', error);
       
-      onSubmit(userData);
+      // Tratar erros específicos de CPF/Email duplicado
+      if (error.message?.includes('cpf_key')) {
+        setErrors(prev => ({ ...prev, cpf: "Este CPF já está em uso" }));
+        toast.error("Erro: CPF já cadastrado no sistema");
+      } else if (error.message?.includes('email_key')) {
+        setErrors(prev => ({ ...prev, email: "Este email já está em uso" }));
+        toast.error("Erro: Email já cadastrado no sistema");
+      } else {
+        toast.error("Erro ao salvar usuário. Tente novamente.");
+      }
     }
   };
+
+  // Debounce para validação em tempo real
+  const validateCpfUnique = useCallback(
+    async (cpf: string) => {
+      if (!cpf.trim() || cpf === usuario?.cpf) return;
+      
+      setIsValidatingCpf(true);
+      try {
+        const isUnique = await usuariosService.validarCpfUnico(cpf, usuario?.id);
+        if (!isUnique) {
+          setErrors(prev => ({ ...prev, cpf: "Este CPF já está em uso" }));
+        } else {
+          setErrors(prev => ({ ...prev, cpf: "" }));
+        }
+      } catch (error) {
+        console.error('Erro ao validar CPF:', error);
+      } finally {
+        setIsValidatingCpf(false);
+      }
+    },
+    [usuario?.id, usuario?.cpf]
+  );
+
+  const validateEmailUnique = useCallback(
+    async (email: string) => {
+      if (!email.trim() || email === usuario?.email || !/\S+@\S+\.\S+/.test(email)) return;
+      
+      setIsValidatingEmail(true);
+      try {
+        const isUnique = await usuariosService.validarEmailUnico(email, usuario?.id);
+        if (!isUnique) {
+          setErrors(prev => ({ ...prev, email: "Este email já está em uso" }));
+        } else {
+          setErrors(prev => ({ ...prev, email: "" }));
+        }
+      } catch (error) {
+        console.error('Erro ao validar email:', error);
+      } finally {
+        setIsValidatingEmail(false);
+      }
+    },
+    [usuario?.id, usuario?.email]
+  );
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
+    }
+
+    // Validação em tempo real para CPF e Email
+    if (field === 'cpf' && value.length >= 11) {
+      setTimeout(() => validateCpfUnique(value), 500);
+    }
+    if (field === 'email' && value.includes('@')) {
+      setTimeout(() => validateEmailUnique(value), 500);
     }
   };
 
@@ -175,24 +244,40 @@ export function UserForm({ usuario, onSubmit, onCancel }: UserFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="email">Email*</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="usuario@email.com"
-              />
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="usuario@email.com"
+                  className={isValidatingEmail ? "pr-8" : ""}
+                />
+                {isValidatingEmail && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
               {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="cpf">CPF*</Label>
-              <Input
-                id="cpf"
-                value={formData.cpf}
-                onChange={(e) => handleInputChange("cpf", e.target.value)}
-                placeholder="000.000.000-00"
-              />
+              <div className="relative">
+                <Input
+                  id="cpf"
+                  value={formData.cpf}
+                  onChange={(e) => handleInputChange("cpf", e.target.value)}
+                  placeholder="000.000.000-00"
+                  className={isValidatingCpf ? "pr-8" : ""}
+                />
+                {isValidatingCpf && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
               {errors.cpf && <p className="text-sm text-destructive">{errors.cpf}</p>}
             </div>
 
