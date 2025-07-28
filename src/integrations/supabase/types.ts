@@ -449,6 +449,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      migrar_usuario_para_auth: {
+        Args: { p_usuario_id: string; p_email: string; p_senha?: string }
+        Returns: undefined
+      }
       text_to_bytea: {
         Args: { data: string }
         Returns: string
