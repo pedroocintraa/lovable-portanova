@@ -34,29 +34,60 @@ class UsuariosService {
   }
 
   async salvarUsuario(usuario: Omit<Usuario, 'id' | 'data_cadastro' | 'ativo'>): Promise<Usuario> {
-    // Converter para formato do banco
-    const usuarioFormatado = {
-      nome: usuario.nome.toUpperCase(),
-      telefone: usuario.telefone,
-      email: usuario.email.toLowerCase(),
-      cpf: usuario.cpf,
-      funcao: usuario.funcao,
-      equipe_id: usuario.equipeId || null,
-      supervisor_equipe_id: usuario.supervisorEquipeId || null
-    };
+    try {
+      // Validar unicidade antes de inserir
+      const emailExiste = await this.validarEmailUnico(usuario.email);
+      if (!emailExiste) {
+        throw new Error('Este email já está sendo utilizado por outro usuário.');
+      }
 
-    const { data, error } = await supabase
-      .from('usuarios')
-      .insert([usuarioFormatado])
-      .select()
-      .single();
+      const cpfExiste = await this.validarCpfUnico(usuario.cpf);
+      if (!cpfExiste) {
+        throw new Error('Este CPF já está sendo utilizado por outro usuário.');
+      }
 
-    if (error) {
-      console.error('Erro ao salvar usuário:', error);
-      throw new Error('Erro ao salvar usuário: ' + error.message);
+      // Converter para formato do banco
+      const usuarioFormatado = {
+        nome: usuario.nome.toUpperCase(),
+        telefone: usuario.telefone,
+        email: usuario.email.toLowerCase(),
+        cpf: usuario.cpf,
+        funcao: usuario.funcao,
+        equipe_id: usuario.equipeId || null,
+        supervisor_equipe_id: usuario.supervisorEquipeId || null
+      };
+
+      console.log('Salvando usuário no Supabase:', usuarioFormatado);
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .insert([usuarioFormatado])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro do Supabase ao salvar usuário:', error);
+        
+        // Tratar erros específicos
+        if (error.code === '23505') {
+          if (error.message.includes('usuarios_email_key')) {
+            throw new Error('Este email já está sendo utilizado por outro usuário.');
+          }
+          if (error.message.includes('usuarios_cpf_key')) {
+            throw new Error('Este CPF já está sendo utilizado por outro usuário.');
+          }
+          throw new Error('Já existe um usuário com estes dados.');
+        }
+        
+        throw new Error(`Erro ao salvar usuário: ${error.message}`);
+      }
+
+      console.log('Usuário salvo com sucesso no Supabase:', data);
+      return this.converterParaUsuario(data);
+    } catch (error) {
+      console.error('Erro no serviço de usuários:', error);
+      throw error;
     }
-
-    return this.converterParaUsuario(data);
   }
 
   async atualizarUsuario(id: string, usuario: Partial<Usuario>): Promise<Usuario> {
