@@ -10,15 +10,18 @@ import { Usuario, FuncaoUsuario } from "@/types/usuario";
 import { usuariosService } from "@/services/usuariosService";
 import { equipesService } from "@/services/equipesService";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit, Trash2, Users } from "lucide-react";
-import { MigrationHelper } from "@/components/MigrationHelper";
+import { Plus, Search, Edit, Trash2, Users, RotateCcw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 export default function GerenciamentoUsuarios() {
   const { toast } = useToast();
+  const { usuario: usuarioLogado } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
   const [busca, setBusca] = useState("");
   const [filtroFuncao, setFiltroFuncao] = useState<string>("TODOS");
+  const [filtroStatus, setFiltroStatus] = useState<string>("ATIVOS");
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | undefined>();
 
@@ -28,12 +31,13 @@ export default function GerenciamentoUsuarios() {
 
   useEffect(() => {
     filtrarUsuarios();
-  }, [usuarios, busca, filtroFuncao]);
+  }, [usuarios, busca, filtroFuncao, filtroStatus]);
 
   const carregarUsuarios = async () => {
     try {
-      const usuariosCarregados = await usuariosService.obterUsuarios();
-      setUsuarios(usuariosCarregados);
+      const usuariosAtivos = await usuariosService.obterUsuarios();
+      const usuariosInativos = await usuariosService.obterUsuariosInativos();
+      setUsuarios([...usuariosAtivos, ...usuariosInativos]);
     } catch (error) {
       toast({
         title: "Erro",
@@ -45,6 +49,13 @@ export default function GerenciamentoUsuarios() {
 
   const filtrarUsuarios = () => {
     let resultado = usuarios;
+
+    // Filtro por status
+    if (filtroStatus === "ATIVOS") {
+      resultado = resultado.filter(usuario => usuario.ativo);
+    } else if (filtroStatus === "INATIVOS") {
+      resultado = resultado.filter(usuario => !usuario.ativo);
+    }
 
     // Filtro por busca (nome ou email)
     if (busca) {
@@ -88,17 +99,54 @@ export default function GerenciamentoUsuarios() {
   };
 
   const handleExcluirUsuario = async (id: string) => {
+    // Verificar se é administrador geral
+    if (usuarioLogado?.funcao !== FuncaoUsuario.ADMINISTRADOR_GERAL) {
+      toast({
+        title: "Acesso Negado",
+        description: "Apenas administradores gerais podem excluir usuários",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      await usuariosService.excluirUsuario(id);
+      await usuariosService.desativarUsuario(id);
       carregarUsuarios();
       toast({
         title: "Sucesso",
-        description: "Usuário excluído com sucesso!",
+        description: "Usuário desativado com sucesso!",
       });
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao excluir usuário",
+        description: error.message || "Erro ao desativar usuário",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReativarUsuario = async (id: string) => {
+    // Verificar se é administrador geral
+    if (usuarioLogado?.funcao !== FuncaoUsuario.ADMINISTRADOR_GERAL) {
+      toast({
+        title: "Acesso Negado",
+        description: "Apenas administradores gerais podem reativar usuários",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await usuariosService.reativarUsuario(id);
+      carregarUsuarios();
+      toast({
+        title: "Sucesso",
+        description: "Usuário reativado com sucesso!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao reativar usuário",
         variant: "destructive"
       });
     }
@@ -188,6 +236,16 @@ export default function GerenciamentoUsuarios() {
                   className="pl-10"
                 />
               </div>
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos</SelectItem>
+                  <SelectItem value="ATIVOS">Ativos</SelectItem>
+                  <SelectItem value="INATIVOS">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={filtroFuncao} onValueChange={setFiltroFuncao}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Filtrar por função" />
@@ -203,8 +261,6 @@ export default function GerenciamentoUsuarios() {
           </CardContent>
         </Card>
 
-        {/* Migração Temporária */}
-        <MigrationHelper />
 
         {/* Lista de Usuários */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -213,45 +269,84 @@ export default function GerenciamentoUsuarios() {
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">{usuario.nome}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{usuario.nome}</CardTitle>
+                      {!usuario.ativo && (
+                        <Badge variant="secondary" className="text-xs">
+                          Inativo
+                        </Badge>
+                      )}
+                    </div>
                     <Badge className={`mt-2 ${obterCorFuncao(usuario.funcao)}`}>
                       {obterNomeFuncao(usuario.funcao)}
                     </Badge>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEditarUsuario(usuario)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {usuario.funcao !== FuncaoUsuario.ADMINISTRADOR_GERAL && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir o usuário {usuario.nome}?
-                              Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleExcluirUsuario(usuario.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                    {usuario.ativo && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditarUsuario(usuario)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {usuarioLogado?.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL && (
+                      <>
+                        {usuario.ativo ? (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Desativação</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja desativar o usuário {usuario.nome}?
+                                  O usuário não conseguirá mais acessar o sistema, mas poderá ser reativado posteriormente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleExcluirUsuario(usuario.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Desativar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        ) : (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <RotateCcw className="h-4 w-4 text-green-600" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Reativação</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja reativar o usuário {usuario.nome}?
+                                  O usuário voltará a ter acesso ao sistema.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleReativarUsuario(usuario.id)}
+                                  className="bg-green-600 text-white hover:bg-green-700"
+                                >
+                                  Reativar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

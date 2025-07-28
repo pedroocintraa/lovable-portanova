@@ -159,7 +159,22 @@ class UsuariosService {
     return this.converterParaUsuario(data);
   }
 
-  async excluirUsuario(id: string): Promise<boolean> {
+  async obterUsuariosInativos(): Promise<Usuario[]> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('ativo', false)
+      .order('nome');
+
+    if (error) {
+      console.error('Erro ao obter usuários inativos:', error);
+      throw new Error('Erro ao carregar usuários inativos');
+    }
+
+    return (data || []).map(this.converterParaUsuario);
+  }
+
+  async desativarUsuario(id: string): Promise<boolean> {
     // Verificar se não é o último admin
     const usuarios = await this.obterUsuarios();
     const usuario = usuarios.find(u => u.id === id);
@@ -167,21 +182,67 @@ class UsuariosService {
     if (usuario?.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL) {
       const admins = usuarios.filter(u => u.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL);
       if (admins.length <= 1) {
-        throw new Error("Não é possível excluir o último administrador geral do sistema");
+        throw new Error("Não é possível desativar o último administrador geral do sistema");
       }
     }
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from('usuarios')
       .update({ ativo: false })
       .eq('id', id);
 
-    if (error) {
-      console.error('Erro ao excluir usuário:', error);
-      throw new Error('Erro ao excluir usuário');
+    if (updateError) {
+      console.error('Erro ao desativar usuário:', updateError);
+      throw new Error('Erro ao desativar usuário');
+    }
+
+    // Desativar também no Supabase Auth
+    try {
+      const { error: authError } = await supabase.auth.admin.updateUserById(id, {
+        ban_duration: 'none',
+        user_metadata: { banned: true }
+      });
+
+      if (authError) {
+        console.warn('Aviso: Erro ao desativar usuário no Auth (usuário já desativado na tabela):', authError);
+      }
+    } catch (error) {
+      console.warn('Aviso: Não foi possível desativar usuário no Auth:', error);
     }
 
     return true;
+  }
+
+  async reativarUsuario(id: string): Promise<boolean> {
+    const { error: updateError } = await supabase
+      .from('usuarios')
+      .update({ ativo: true })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('Erro ao reativar usuário:', updateError);
+      throw new Error('Erro ao reativar usuário');
+    }
+
+    // Reativar também no Supabase Auth
+    try {
+      const { error: authError } = await supabase.auth.admin.updateUserById(id, {
+        user_metadata: { banned: false }
+      });
+
+      if (authError) {
+        console.warn('Aviso: Erro ao reativar usuário no Auth (usuário já reativado na tabela):', authError);
+      }
+    } catch (error) {
+      console.warn('Aviso: Não foi possível reativar usuário no Auth:', error);
+    }
+
+    return true;
+  }
+
+  // Manter método legado para compatibilidade
+  async excluirUsuario(id: string): Promise<boolean> {
+    return this.desativarUsuario(id);
   }
 
   async validarEmailUnico(email: string, usuarioId?: string): Promise<boolean> {
