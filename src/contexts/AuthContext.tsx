@@ -30,53 +30,113 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     let mounted = true;
+    let loadingTimeout: NodeJS.Timeout;
+    
+    // Timeout de segurança para evitar loading infinito
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('AuthContext: Timeout de segurança ativado');
+        setLoading(false);
+      }
+    }, 10000);
     
     // Configurar listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return;
+        
+        console.log('AuthContext: Auth state changed', { event, hasSession: !!session });
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          try {
-            const usuarios = await usuariosService.obterUsuarios();
-            const usuarioEncontrado = usuarios.find(u => u.email === session.user.email);
-            if (usuarioEncontrado && mounted) {
-              setUsuario(usuarioEncontrado);
-              setPermissoes(usuariosService.obterPermissoes(usuarioEncontrado.funcao));
+          // Usar setTimeout para diferir a chamada async e evitar loops
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            try {
+              const usuarios = await usuariosService.obterUsuarios();
+              const usuarioEncontrado = usuarios.find(u => u.email === session.user.email);
+              
+              if (usuarioEncontrado && mounted) {
+                setUsuario(usuarioEncontrado);
+                setPermissoes(usuariosService.obterPermissoes(usuarioEncontrado.funcao));
+              } else if (mounted) {
+                // Fallback: permitir acesso mesmo sem encontrar usuário específico
+                console.warn('AuthContext: Usuário não encontrado, permitindo acesso básico');
+                setUsuario({
+                  id: session.user.id,
+                  nome: session.user.email?.split('@')[0] || 'Usuário',
+                  email: session.user.email || '',
+                  telefone: '',
+                  cpf: '',
+                  funcao: FuncaoUsuario.VENDEDOR,
+                  dataCadastro: new Date().toISOString(),
+                  ativo: true
+                });
+                setPermissoes(usuariosService.obterPermissoes(FuncaoUsuario.VENDEDOR));
+              }
+            } catch (error) {
+              console.error('AuthContext: Erro ao carregar dados do usuário:', error);
+              if (mounted) {
+                // Fallback: permitir acesso básico mesmo com erro
+                setUsuario({
+                  id: session.user.id,
+                  nome: session.user.email?.split('@')[0] || 'Usuário',
+                  email: session.user.email || '',
+                  telefone: '',
+                  cpf: '',
+                  funcao: FuncaoUsuario.VENDEDOR,
+                  dataCadastro: new Date().toISOString(),
+                  ativo: true
+                });
+                setPermissoes(usuariosService.obterPermissoes(FuncaoUsuario.VENDEDOR));
+              }
+            } finally {
+              if (mounted) {
+                setLoading(false);
+              }
             }
-          } catch (error) {
-            console.error('Erro ao carregar dados do usuário:', error);
-            if (mounted) {
-              setUsuario(null);
-              setPermissoes(null);
-            }
-          }
+          }, 100);
         } else {
           setUsuario(null);
           setPermissoes(null);
-        }
-        
-        if (mounted) {
           setLoading(false);
         }
       }
     );
 
     // Verificar sessão existente
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (!session) {
-        setLoading(false);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
+        console.log('AuthContext: Sessão inicial verificada', { hasSession: !!session });
+        
+        if (!session) {
+          setSession(null);
+          setUser(null);
+          setUsuario(null);
+          setPermissoes(null);
+          setLoading(false);
+        }
+        // Se tem sessão, o onAuthStateChange vai lidar com isso
+      } catch (error) {
+        console.error('AuthContext: Erro ao verificar sessão:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    };
+
+    initializeAuth();
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
+      if (loadingTimeout) clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);

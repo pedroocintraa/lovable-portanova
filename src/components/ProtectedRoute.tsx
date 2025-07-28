@@ -9,16 +9,39 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, loading } = useAuth();
+  const [localLoading, setLocalLoading] = React.useState(true);
 
-  if (loading) {
+  // Timeout de segurança local
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('ProtectedRoute: Timeout local ativado');
+      setLocalLoading(false);
+    }, 5000);
+
+    if (!loading) {
+      setLocalLoading(false);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
+  const isLoading = loading || localLoading;
+
+  console.log('ProtectedRoute:', { isAuthenticated, loading, localLoading, isLoading });
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
+    console.log('ProtectedRoute: Redirecionando para login');
     return <Navigate to="/login" replace />;
   }
 
