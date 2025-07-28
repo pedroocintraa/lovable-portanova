@@ -29,9 +29,17 @@ export default function GerenciamentoUsuarios() {
     filtrarUsuarios();
   }, [usuarios, busca, filtroFuncao]);
 
-  const carregarUsuarios = () => {
-    const usuariosCarregados = userService.obterUsuarios();
-    setUsuarios(usuariosCarregados);
+  const carregarUsuarios = async () => {
+    try {
+      const usuariosCarregados = await usuariosService.obterUsuarios();
+      setUsuarios(usuariosCarregados);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar usuários",
+        variant: "destructive"
+      });
+    }
   };
 
   const filtrarUsuarios = () => {
@@ -53,9 +61,14 @@ export default function GerenciamentoUsuarios() {
     setUsuariosFiltrados(resultado);
   };
 
-  const handleSalvarUsuario = (usuario: Usuario) => {
+  const handleSalvarUsuario = async (usuario: Usuario) => {
     try {
-      userService.salvarUsuario(usuario);
+      if (usuarioEditando) {
+        await usuariosService.atualizarUsuario(usuarioEditando.id, usuario);
+      } else {
+        await usuariosService.salvarUsuario(usuario);
+      }
+      
       carregarUsuarios();
       setMostrarFormulario(false);
       setUsuarioEditando(undefined);
@@ -73,9 +86,9 @@ export default function GerenciamentoUsuarios() {
     }
   };
 
-  const handleExcluirUsuario = (id: string) => {
+  const handleExcluirUsuario = async (id: string) => {
     try {
-      userService.excluirUsuario(id);
+      await usuariosService.excluirUsuario(id);
       carregarUsuarios();
       toast({
         title: "Sucesso",
