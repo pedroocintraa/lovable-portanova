@@ -25,12 +25,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Auto-login temporário como administrador de teste
     const autoLogin = async () => {
       try {
-        // Simular login do usuário admin@teste.com
-        await supabase.auth.signInWithPassword({
-          email: 'admin@teste.com',
-          password: 'admin123'
-        });
-        
         const usuarios = await usuariosService.obterUsuarios();
         const admin = usuarios.find(u => u.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL);
         if (admin) {
@@ -38,7 +32,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setPermissoes(usuariosService.obterPermissoes(admin.funcao));
         }
       } catch (error) {
-        // Se não conseguir fazer login, criar usuário temporário para desenvolvimento
+        console.error('Erro ao carregar usuários:', error);
+        // Criar usuário temporário para desenvolvimento
         const adminTemp: Usuario = {
           id: '00000000-0000-0000-0000-000000000001',
           nome: 'ADMIN TESTE',

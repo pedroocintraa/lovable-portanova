@@ -46,12 +46,10 @@ class EquipesService {
       .from('equipes')
       .select('*')
       .eq('id', id)
-      .single();
+      .eq('ativo', true)
+      .maybeSingle();
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Equipe não encontrada
-      }
       console.error('Erro ao buscar equipe:', error);
       throw new Error('Erro ao carregar equipe');
     }

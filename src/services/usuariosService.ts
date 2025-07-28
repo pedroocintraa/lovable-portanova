@@ -22,14 +22,15 @@ class UsuariosService {
       .from('usuarios')
       .select('*')
       .eq('id', id)
-      .single();
+      .eq('ativo', true)
+      .maybeSingle();
 
     if (error) {
       console.error('Erro ao obter usuário:', error);
-      return null;
+      throw new Error('Erro ao carregar usuário');
     }
 
-    return this.converterParaUsuario(data);
+    return data ? this.converterParaUsuario(data) : null;
   }
 
   async salvarUsuario(usuario: Omit<Usuario, 'id' | 'data_cadastro' | 'ativo'>): Promise<Usuario> {
