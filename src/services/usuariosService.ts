@@ -93,7 +93,7 @@ class UsuariosService {
     if (usuario?.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL) {
       const admins = usuarios.filter(u => u.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL);
       if (admins.length <= 1) {
-        throw new Error("Não é possível excluir o último administrador geral");
+        throw new Error("Não é possível excluir o último administrador geral do sistema");
       }
     }
 

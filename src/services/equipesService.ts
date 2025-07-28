@@ -108,14 +108,15 @@ class EquipesService {
   }
 
   async excluirEquipe(id: string): Promise<boolean> {
-    // Verificar se há usuários na equipe
+    // Verificar se há usuários ATIVOS na equipe
     const { data: usuarios } = await supabase
       .from('usuarios')
       .select('id')
-      .eq('equipe_id', id);
+      .eq('equipe_id', id)
+      .eq('ativo', true);
     
     if (usuarios && usuarios.length > 0) {
-      throw new Error('Não é possível excluir equipe com usuários ativos');
+      throw new Error('Não é possível excluir equipe com usuários ativos. Remova ou desative os usuários primeiro.');
     }
 
     const { error } = await supabase
