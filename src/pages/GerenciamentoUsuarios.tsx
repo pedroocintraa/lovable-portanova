@@ -24,6 +24,7 @@ export default function GerenciamentoUsuarios() {
   const [filtroStatus, setFiltroStatus] = useState<string>("ATIVOS");
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | undefined>();
+  const [usuariosInconsistentes, setUsuariosInconsistentes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     carregarUsuarios();
@@ -32,6 +33,10 @@ export default function GerenciamentoUsuarios() {
   useEffect(() => {
     filtrarUsuarios();
   }, [usuarios, busca, filtroFuncao, filtroStatus]);
+
+  useEffect(() => {
+    verificarConsistenciaUsuarios();
+  }, [usuarios]);
 
   const carregarUsuarios = async () => {
     try {
@@ -44,6 +49,27 @@ export default function GerenciamentoUsuarios() {
         description: "Erro ao carregar usuários",
         variant: "destructive"
       });
+    }
+  };
+
+  const verificarConsistenciaUsuarios = async () => {
+    try {
+      const inconsistentes = new Set<string>();
+
+      for (const usuario of usuarios) {
+        try {
+          const consistencia = await usuariosService.verificarConsistenciaUsuario(usuario.id);
+          if (!consistencia.consistente) {
+            inconsistentes.add(usuario.id);
+          }
+        } catch (error) {
+          console.error(`Erro ao verificar consistência do usuário ${usuario.nome}:`, error);
+        }
+      }
+
+      setUsuariosInconsistentes(inconsistentes);
+    } catch (error) {
+      console.error('Erro ao verificar consistência dos usuários:', error);
     }
   };
 
@@ -321,9 +347,16 @@ export default function GerenciamentoUsuarios() {
                         </Badge>
                       )}
                     </div>
-                    <Badge className={`mt-2 ${obterCorFuncao(usuario.funcao)}`}>
-                      {obterNomeFuncao(usuario.funcao)}
-                    </Badge>
+                     <div className="flex items-center gap-2 mt-2">
+                       <Badge className={obterCorFuncao(usuario.funcao)}>
+                         {obterNomeFuncao(usuario.funcao)}
+                       </Badge>
+                       {usuariosInconsistentes.has(usuario.id) && (
+                         <Badge variant="destructive" className="text-xs">
+                           Inconsistente
+                         </Badge>
+                       )}
+                     </div>
                   </div>
                   <div className="flex gap-2">
                     {usuario.ativo && (

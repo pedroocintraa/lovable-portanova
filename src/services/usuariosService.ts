@@ -346,27 +346,70 @@ class UsuariosService {
     }
   }
 
-  async excluirUsuarioPermanentemente(id: string): Promise<boolean> {
+  async verificarConsistenciaUsuario(id: string): Promise<{ consistente: boolean; existeNoAuth: boolean; existeNaCRM: boolean }> {
     try {
-      // 1. Verificar se é o último administrador geral
-      const { data: admins } = await supabase
+      // Verificar se existe na tabela usuarios
+      const { data: usuarioCRM } = await supabase
         .from('usuarios')
         .select('id')
-        .eq('funcao', FuncaoUsuario.ADMINISTRADOR_GERAL)
-        .eq('ativo', true);
+        .eq('id', id)
+        .single();
 
-      if (admins && admins.length === 1 && admins[0].id === id) {
-        throw new Error('Não é possível excluir o último administrador geral do sistema');
+      // Verificar se existe no auth.users
+      let existeNoAuth = false;
+      try {
+        const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(id);
+        existeNoAuth = !getUserError && !!authUser.user;
+      } catch (error) {
+        existeNoAuth = false;
       }
 
-      // 2. Excluir do auth.users (Supabase Auth)
-      const { error: authError } = await supabase.auth.admin.deleteUser(id);
-      if (authError && !authError.message.includes('User not found')) {
-        console.error('Erro ao excluir do Supabase Auth:', authError);
-        throw new Error('Erro ao excluir usuário do sistema de autenticação');
+      const existeNaCRM = !!usuarioCRM;
+      const consistente = existeNoAuth === existeNaCRM;
+
+      return { consistente, existeNoAuth, existeNaCRM };
+    } catch (error) {
+      console.error('Erro ao verificar consistência:', error);
+      return { consistente: false, existeNoAuth: false, existeNaCRM: false };
+    }
+  }
+
+  async excluirUsuarioPermanentemente(id: string): Promise<boolean> {
+    try {
+      const usuario = await this.obterUsuarioPorId(id);
+      if (!usuario) {
+        throw new Error("Usuário não encontrado");
       }
 
-      // 3. Excluir da tabela usuarios
+      // 1. Verificar se é o último administrador geral
+      if (usuario.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL) {
+        const { data: admins } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('funcao', FuncaoUsuario.ADMINISTRADOR_GERAL)
+          .eq('ativo', true);
+
+        if (admins && admins.length <= 1) {
+          throw new Error('Não é possível excluir o último administrador geral do sistema');
+        }
+      }
+
+      // 2. Verificar se o usuário existe no Auth
+      const consistencia = await this.verificarConsistenciaUsuario(id);
+      
+      // 3. Excluir do auth.users apenas se existir
+      if (consistencia.existeNoAuth) {
+        const { error: authError } = await supabase.auth.admin.deleteUser(id);
+        if (authError) {
+          console.error('Erro ao excluir do Supabase Auth:', authError);
+          throw new Error('Erro ao excluir usuário do sistema de autenticação');
+        }
+        console.log(`Usuário ${usuario.nome} excluído do Supabase Auth`);
+      } else {
+        console.log(`Usuário ${usuario.nome} não existe no Supabase Auth (usuário órfão)`);
+      }
+
+      // 4. Excluir da tabela usuarios
       const { error: dbError } = await supabase
         .from('usuarios')
         .delete()
@@ -377,6 +420,7 @@ class UsuariosService {
         throw new Error('Erro ao excluir usuário do banco de dados');
       }
 
+      console.log(`Usuário ${usuario.nome} excluído permanentemente com sucesso`);
       return true;
     } catch (error) {
       console.error('Erro ao excluir usuário permanentemente:', error);
