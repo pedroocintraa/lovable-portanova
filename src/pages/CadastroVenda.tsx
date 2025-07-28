@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buscarEnderecoPorCep, formatarCep, validarCep } from "@/services/viacep";
 import { configuracaoService } from "@/services/configuracaoService";
 import { Venda, VendaFormData, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
-import type { Plano, DataVencimento } from "@/types/configuracao";
+import type { Plano } from "@/types/configuracao";
 import { Loader2, User, MapPin, Settings, CreditCard, Calendar, Camera } from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,9 +30,8 @@ const CadastroVenda = () => {
     selfieCliente: []
   });
   const [planos, setPlanos] = useState<Plano[]>([]);
-  const [datasVencimento, setDatasVencimento] = useState<DataVencimento[]>([]);
   const [planoSelecionado, setPlanoSelecionado] = useState<string>("");
-  const [dataVencimentoSelecionada, setDataVencimentoSelecionada] = useState<string>("");
+  const [diaVencimento, setDiaVencimento] = useState<string>("");
   const [isLoadingConfiguracoes, setIsLoadingConfiguracoes] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -46,12 +45,8 @@ const CadastroVenda = () => {
 
   const carregarConfiguracoes = async () => {
     try {
-      const [planosData, datasData] = await Promise.all([
-        configuracaoService.obterPlanosAtivos(),
-        configuracaoService.obterDatasVencimentoAtivas()
-      ]);
+      const planosData = await configuracaoService.obterPlanosAtivos();
       setPlanos(planosData);
-      setDatasVencimento(datasData);
     } catch (error) {
       toast({
         title: "Erro",
@@ -124,10 +119,10 @@ const CadastroVenda = () => {
       return;
     }
 
-    if (!dataVencimentoSelecionada) {
+    if (!diaVencimento) {
       toast({
         title: "Erro",
-        description: "Selecione uma data de vencimento",
+        description: "Selecione o dia de vencimento",
         variant: "destructive",
       });
       return;
@@ -143,12 +138,6 @@ const CadastroVenda = () => {
     }
 
     try {
-      const planoSelecionadoObj = planos.find(p => p.id === planoSelecionado);
-      const dataVencimentoObj = datasVencimento.find(d => d.id === dataVencimentoSelecionada);
-      
-      const dataVencimentoCalculada = new Date();
-      dataVencimentoCalculada.setDate(dataVencimentoCalculada.getDate() + (dataVencimentoObj?.dias || 30));
-
       const novaVenda: Venda = {
         id: `venda_${Date.now()}`,
         cliente: data.cliente,
@@ -159,7 +148,7 @@ const CadastroVenda = () => {
         vendedorId: usuario?.id,
         vendedorNome: usuario?.nome,
         planoId: planoSelecionado,
-        dataVencimento: dataVencimentoCalculada.toISOString().split('T')[0]
+        diaVencimento: parseInt(diaVencimento)
       };
 
       // Usar o novo serviço de armazenamento
@@ -403,15 +392,15 @@ const CadastroVenda = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="dataVencimento">Data de Vencimento *</Label>
-                  <Select value={dataVencimentoSelecionada} onValueChange={setDataVencimentoSelecionada}>
+                  <Label htmlFor="diaVencimento">Dia de Vencimento *</Label>
+                  <Select value={diaVencimento} onValueChange={setDiaVencimento}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o prazo" />
+                      <SelectValue placeholder="Selecione o dia (1-31)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {datasVencimento.map((data) => (
-                        <SelectItem key={data.id} value={data.id}>
-                          {data.descricao}
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
+                        <SelectItem key={dia} value={dia.toString()}>
+                          Dia {dia}
                         </SelectItem>
                       ))}
                     </SelectContent>

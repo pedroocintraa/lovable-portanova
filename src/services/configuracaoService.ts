@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Plano, DataVencimento, PlanoFormData, DataVencimentoFormData } from "@/types/configuracao";
+import type { Plano, PlanoFormData } from "@/types/configuracao";
 
 export class ConfiguracaoService {
   // Planos
@@ -50,60 +50,6 @@ export class ConfiguracaoService {
   async excluirPlano(id: string): Promise<void> {
     const { error } = await supabase
       .from('planos')
-      .update({ ativo: false })
-      .eq('id', id);
-    
-    if (error) throw error;
-  }
-
-  // Datas de Vencimento
-  async obterDatasVencimento(): Promise<DataVencimento[]> {
-    const { data, error } = await supabase
-      .from('datas_vencimento')
-      .select('*')
-      .order('dias');
-    
-    if (error) throw error;
-    return data || [];
-  }
-
-  async obterDatasVencimentoAtivas(): Promise<DataVencimento[]> {
-    const { data, error } = await supabase
-      .from('datas_vencimento')
-      .select('*')
-      .eq('ativo', true)
-      .order('dias');
-    
-    if (error) throw error;
-    return data || [];
-  }
-
-  async criarDataVencimento(dataVencimento: DataVencimentoFormData): Promise<DataVencimento> {
-    const { data, error } = await supabase
-      .from('datas_vencimento')
-      .insert(dataVencimento)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
-
-  async atualizarDataVencimento(id: string, dataVencimento: Partial<DataVencimentoFormData>): Promise<DataVencimento> {
-    const { data, error } = await supabase
-      .from('datas_vencimento')
-      .update(dataVencimento)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
-
-  async excluirDataVencimento(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('datas_vencimento')
       .update({ ativo: false })
       .eq('id', id);
     

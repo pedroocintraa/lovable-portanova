@@ -58,33 +58,6 @@ export type Database = {
           },
         ]
       }
-      datas_vencimento: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          descricao: string
-          dias: number
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          descricao: string
-          dias: number
-          id?: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          descricao?: string
-          dias?: number
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       documentos_venda: {
         Row: {
           data_upload: string | null
@@ -328,8 +301,8 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string | null
-          data_vencimento: string | null
           data_venda: string | null
+          dia_vencimento: number | null
           id: string
           observacoes: string | null
           plano_id: string | null
@@ -341,8 +314,8 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string | null
-          data_vencimento?: string | null
           data_venda?: string | null
+          dia_vencimento?: number | null
           id?: string
           observacoes?: string | null
           plano_id?: string | null
@@ -354,8 +327,8 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string | null
-          data_vencimento?: string | null
           data_venda?: string | null
+          dia_vencimento?: number | null
           id?: string
           observacoes?: string | null
           plano_id?: string | null

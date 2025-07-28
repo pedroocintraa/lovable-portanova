@@ -48,7 +48,7 @@ export interface Venda {
   vendedorId?: string; // ID do usuário que criou a venda
   vendedorNome?: string; // Nome do vendedor (para facilitar exibição)
   planoId?: string; // ID do plano selecionado
-  dataVencimento?: string; // Data de vencimento calculada
+  diaVencimento?: number; // Dia do vencimento (1-31)
 }
 
 export interface VendaFormData extends Omit<Venda, "id" | "dataVenda" | "status"> {
