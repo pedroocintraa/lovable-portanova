@@ -7,7 +7,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserForm } from "@/components/UserForm/UserForm";
 import { Usuario, FuncaoUsuario } from "@/types/usuario";
-import { userService } from "@/services/userService";
+import { usuariosService } from "@/services/usuariosService";
+import { equipesService } from "@/services/equipesService";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Edit, Trash2, Users } from "lucide-react";
 

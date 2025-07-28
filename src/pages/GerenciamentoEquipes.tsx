@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Users, UserCheck } from "lucide-react";
-import { equipesService } from "@/services/equipesService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pencil, Trash2, Plus, Search, Users, UserPlus, Shield } from "lucide-react";
 import { Equipe, EquipeFormData, EquipeComMembros } from "@/types/equipe";
+import { Usuario, FuncaoUsuario } from "@/types/usuario";
+import { equipesService } from "@/services/equipesService";
+import { usuariosService } from "@/services/usuariosService";
 import { useToast } from "@/hooks/use-toast";
 
 interface EquipeFormProps {
@@ -101,23 +105,40 @@ function EquipeForm({ equipe, onSubmit, onCancel }: EquipeFormProps) {
   );
 }
 
-export default function GerenciamentoEquipes() {
+export function GerenciamentoEquipes() {
+  const { toast } = useToast();
   const [equipes, setEquipes] = useState<EquipeComMembros[]>([]);
+  const [filteredEquipes, setFilteredEquipes] = useState<EquipeComMembros[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [equipeEditando, setEquipeEditando] = useState<Equipe | undefined>();
-  const [equipeParaExcluir, setEquipeParaExcluir] = useState<EquipeComMembros | null>(null);
-  const { toast } = useToast();
+  const [equipeParaExcluir, setEquipeParaExcluir] = useState<Equipe | null>(null);
+  const [equipeSelecionada, setEquipeSelecionada] = useState<string>("");
+  const [membrosEquipe, setMembrosEquipe] = useState<Usuario[]>([]);
+  const [supervisoresDisponiveis, setSupervisoresDisponiveis] = useState<Usuario[]>([]);
+  const [supervisorSelecionado, setSupervisorSelecionado] = useState<string>("");
 
   useEffect(() => {
     carregarEquipes();
+    carregarSupervisoresDisponiveis();
   }, []);
+
+  useEffect(() => {
+    filtrarEquipes();
+  }, [equipes, searchTerm]);
+
+  useEffect(() => {
+    if (equipeSelecionada) {
+      carregarMembrosEquipe(equipeSelecionada);
+    }
+  }, [equipeSelecionada]);
 
   const carregarEquipes = async () => {
     try {
-      const data = await equipesService.obterEquipesComMembros();
-      setEquipes(data);
+      const equipesData = await equipesService.obterEquipesComMembros();
+      setEquipes(equipesData);
     } catch (error) {
+      console.error('Erro ao carregar equipes:', error);
       toast({
         title: "Erro",
         description: "Erro ao carregar equipes",
@@ -126,10 +147,42 @@ export default function GerenciamentoEquipes() {
     }
   };
 
-  const equipesFiltradas = equipes.filter(equipe =>
-    equipe.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (equipe.descricao && equipe.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const carregarMembrosEquipe = async (equipeId: string) => {
+    try {
+      const membros = await usuariosService.obterUsuariosPorEquipe(equipeId);
+      setMembrosEquipe(membros);
+    } catch (error) {
+      console.error('Erro ao carregar membros da equipe:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar membros da equipe",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const carregarSupervisoresDisponiveis = async () => {
+    try {
+      const usuarios = await usuariosService.obterUsuarios();
+      const supervisores = usuarios.filter(u => u.funcao === FuncaoUsuario.SUPERVISOR_EQUIPE);
+      setSupervisoresDisponiveis(supervisores);
+    } catch (error) {
+      console.error('Erro ao carregar supervisores:', error);
+    }
+  };
+
+  const filtrarEquipes = () => {
+    let filtered = equipes;
+
+    if (searchTerm) {
+      filtered = filtered.filter(equipe =>
+        equipe.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (equipe.descricao && equipe.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    setFilteredEquipes(filtered);
+  };
 
   const handleSalvarEquipe = async (data: EquipeFormData) => {
     try {
@@ -137,48 +190,47 @@ export default function GerenciamentoEquipes() {
         await equipesService.atualizarEquipe(equipeEditando.id, data);
         toast({
           title: "Sucesso",
-          description: "Equipe atualizada com sucesso",
+          description: "Equipe atualizada com sucesso!",
         });
       } else {
         await equipesService.salvarEquipe(data);
         toast({
           title: "Sucesso",
-          description: "Equipe criada com sucesso",
+          description: "Equipe criada com sucesso!",
         });
       }
+      
+      await carregarEquipes();
       setShowForm(false);
       setEquipeEditando(undefined);
-      carregarEquipes();
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Erro ao salvar equipe",
         variant: "destructive",
       });
     }
   };
 
-  const handleExcluirEquipe = async () => {
-    if (!equipeParaExcluir) return;
-
+  const handleExcluirEquipe = async (equipe: Equipe) => {
     try {
-      await equipesService.excluirEquipe(equipeParaExcluir.id);
+      await equipesService.excluirEquipe(equipe.id);
       toast({
         title: "Sucesso",
-        description: "Equipe excluída com sucesso",
+        description: "Equipe excluída com sucesso!",
       });
-      setEquipeParaExcluir(null);
-      carregarEquipes();
+      await carregarEquipes();
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Erro ao excluir equipe",
         variant: "destructive",
       });
     }
+    setEquipeParaExcluir(null);
   };
 
-  const handleEditarEquipe = (equipe: EquipeComMembros) => {
+  const handleEditarEquipe = (equipe: Equipe) => {
     setEquipeEditando(equipe);
     setShowForm(true);
   };
@@ -186,6 +238,57 @@ export default function GerenciamentoEquipes() {
   const handleNovaEquipe = () => {
     setEquipeEditando(undefined);
     setShowForm(true);
+  };
+
+  const handleAtribuirSupervisor = async () => {
+    if (!equipeSelecionada || !supervisorSelecionado) return;
+
+    try {
+      await usuariosService.atribuirSupervisorEquipe(equipeSelecionada, supervisorSelecionado);
+      toast({
+        title: "Sucesso",
+        description: "Supervisor atribuído com sucesso!",
+      });
+      await carregarEquipes();
+      await carregarMembrosEquipe(equipeSelecionada);
+      setSupervisorSelecionado("");
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atribuir supervisor",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const obterNomeFuncao = (funcao: FuncaoUsuario): string => {
+    switch (funcao) {
+      case FuncaoUsuario.ADMINISTRADOR_GERAL:
+        return "Administrador Geral";
+      case FuncaoUsuario.SUPERVISOR:
+        return "Supervisor";
+      case FuncaoUsuario.SUPERVISOR_EQUIPE:
+        return "Supervisor de Equipe";
+      case FuncaoUsuario.VENDEDOR:
+        return "Vendedor";
+      default:
+        return funcao;
+    }
+  };
+
+  const obterCorFuncao = (funcao: FuncaoUsuario) => {
+    switch (funcao) {
+      case FuncaoUsuario.ADMINISTRADOR_GERAL:
+        return "destructive";
+      case FuncaoUsuario.SUPERVISOR:
+        return "default";
+      case FuncaoUsuario.SUPERVISOR_EQUIPE:
+        return "secondary";
+      case FuncaoUsuario.VENDEDOR:
+        return "outline";
+      default:
+        return "outline";
+    }
   };
 
   if (showForm) {
@@ -202,7 +305,7 @@ export default function GerenciamentoEquipes() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gerenciamento de Equipes</h1>
         <Button onClick={handleNovaEquipe}>
@@ -211,105 +314,197 @@ export default function GerenciamentoEquipes() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Equipes</CardTitle>
-            <div className="w-80">
-              <Input
-                placeholder="Buscar equipes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {equipesFiltradas.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              {searchTerm ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"}
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {equipesFiltradas.map((equipe) => (
-                <Card key={equipe.id} className="h-fit">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-lg">{equipe.nome}</CardTitle>
-                        {equipe.descricao && (
-                          <p className="text-sm text-muted-foreground">
-                            {equipe.descricao}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {equipe.membros} {equipe.membros === 1 ? "membro" : "membros"}
-                        </span>
-                      </div>
+      <Tabs defaultValue="equipes" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="equipes">Equipes</TabsTrigger>
+          <TabsTrigger value="membros">Gerenciar Membros</TabsTrigger>
+        </TabsList>
 
-                      {equipe.supervisor && (
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{equipe.supervisor}</span>
-                          <Badge variant="secondary">Supervisor</Badge>
-                        </div>
-                      )}
+        <TabsContent value="equipes" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4">
+                <Input
+                  placeholder="Buscar por nome ou descrição..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
 
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditarEquipe(equipe)}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Editar
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+              {filteredEquipes.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhuma equipe encontrada.
+                </p>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredEquipes.map((equipe) => (
+                    <Card key={equipe.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-lg">{equipe.nome}</h3>
+                            <Badge variant="outline">
+                              <Users className="h-3 w-3 mr-1" />
+                              {equipe.membros}
+                            </Badge>
+                          </div>
+                          
+                          {equipe.descricao && (
+                            <p className="text-sm text-muted-foreground">{equipe.descricao}</p>
+                          )}
+                          
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <p><strong>Membros:</strong> {equipe.membros}</p>
+                            {equipe.supervisor && (
+                              <p><strong>Supervisor:</strong> {equipe.supervisor}</p>
+                            )}
+                            <p><strong>Criada em:</strong> {new Date(equipe.created_at).toLocaleDateString()}</p>
+                          </div>
+                          
+                          <div className="flex gap-2 pt-2">
                             <Button
-                              size="sm"
                               variant="outline"
+                              size="sm"
+                              onClick={() => handleEditarEquipe(equipe)}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
                               onClick={() => setEquipeParaExcluir(equipe)}
                             >
-                              <Trash2 className="h-3 w-3 mr-1" />
+                              <Trash2 className="h-4 w-4 mr-1" />
                               Excluir
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir a equipe "{equipe.nome}"?
-                                Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel onClick={() => setEquipeParaExcluir(null)}>
-                                Cancelar
-                              </AlertDialogCancel>
-                              <AlertDialogAction onClick={handleExcluirEquipe}>
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="membros" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Selecionar Equipe
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={equipeSelecionada} onValueChange={setEquipeSelecionada}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma equipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {equipes.map((equipe) => (
+                      <SelectItem key={equipe.id} value={equipe.id}>
+                        {equipe.nome} ({equipe.membros} membros)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {equipeSelecionada && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Atribuir Supervisor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Select value={supervisorSelecionado} onValueChange={setSupervisorSelecionado}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um supervisor de equipe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {supervisoresDisponiveis
+                        .filter(s => s.equipeId === equipeSelecionada)
+                        .map((supervisor) => (
+                        <SelectItem key={supervisor.id} value={supervisor.id}>
+                          {supervisor.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleAtribuirSupervisor}
+                    disabled={!supervisorSelecionado}
+                    className="w-full"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Atribuir Supervisor
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {equipeSelecionada && membrosEquipe.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Membros da Equipe: {equipes.find(e => e.id === equipeSelecionada)?.nome}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {membrosEquipe.map((membro) => (
+                    <Card key={membro.id} className="p-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold">{membro.nome}</h4>
+                          <Badge variant={obterCorFuncao(membro.funcao) as any}>
+                            {obterNomeFuncao(membro.funcao)}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p><strong>Email:</strong> {membro.email}</p>
+                          <p><strong>Telefone:</strong> {membro.telefone}</p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
+
+      <AlertDialog open={!!equipeParaExcluir} onOpenChange={() => setEquipeParaExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a equipe "{equipeParaExcluir?.nome}"?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => equipeParaExcluir && handleExcluirEquipe(equipeParaExcluir)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+export default GerenciamentoEquipes;
