@@ -46,8 +46,33 @@ class UsuariosService {
         throw new Error('Este CPF já está sendo utilizado por outro usuário.');
       }
 
-      // Converter para formato do banco
+      console.log('Iniciando criação de usuário com Supabase Auth');
+
+      // Etapa 1: Criar usuário no Supabase Auth
+      const senhaTemporaria = this.gerarSenhaTemporaria();
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email: usuario.email.toLowerCase(),
+        password: senhaTemporaria,
+        email_confirm: true,
+        user_metadata: {
+          nome: usuario.nome.toUpperCase(),
+          funcao: usuario.funcao
+        }
+      });
+
+      if (authError) {
+        console.error('Erro ao criar usuário no Auth:', authError);
+        if (authError.message.includes('email address is already in use')) {
+          throw new Error('Este email já está sendo utilizado por outro usuário.');
+        }
+        throw new Error(`Erro ao criar usuário: ${authError.message}`);
+      }
+
+      console.log('Usuário criado no Auth:', authUser.user?.id);
+
+      // Etapa 2: Inserir dados complementares na tabela usuarios
       const usuarioFormatado = {
+        id: authUser.user!.id, // Usar o mesmo ID do auth.users
         nome: usuario.nome.toUpperCase(),
         telefone: usuario.telefone,
         email: usuario.email.toLowerCase(),
@@ -57,7 +82,7 @@ class UsuariosService {
         supervisor_equipe_id: usuario.supervisorEquipeId || null
       };
 
-      console.log('Salvando usuário no Supabase:', usuarioFormatado);
+      console.log('Salvando dados complementares do usuário:', usuarioFormatado);
 
       const { data, error } = await supabase
         .from('usuarios')
@@ -66,7 +91,15 @@ class UsuariosService {
         .single();
 
       if (error) {
-        console.error('Erro do Supabase ao salvar usuário:', error);
+        console.error('Erro ao salvar dados complementares:', error);
+        
+        // Se falhar ao salvar na tabela usuarios, limpar o usuário do auth
+        try {
+          await supabase.auth.admin.deleteUser(authUser.user!.id);
+          console.log('Usuário removido do auth devido ao erro');
+        } catch (cleanupError) {
+          console.error('Erro ao limpar usuário do auth:', cleanupError);
+        }
         
         // Tratar erros específicos
         if (error.code === '23505') {
@@ -79,15 +112,25 @@ class UsuariosService {
           throw new Error('Já existe um usuário com estes dados.');
         }
         
-        throw new Error(`Erro ao salvar usuário: ${error.message}`);
+        throw new Error(`Erro ao salvar dados do usuário: ${error.message}`);
       }
 
-      console.log('Usuário salvo com sucesso no Supabase:', data);
+      console.log('Usuário criado com sucesso! ID:', data.id, 'Email será enviado automaticamente');
       return this.converterParaUsuario(data);
     } catch (error) {
       console.error('Erro no serviço de usuários:', error);
       throw error;
     }
+  }
+
+  private gerarSenhaTemporaria(): string {
+    // Gerar senha temporária de 12 caracteres
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+    let senha = '';
+    for (let i = 0; i < 12; i++) {
+      senha += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return senha;
   }
 
   async atualizarUsuario(id: string, usuario: Partial<Usuario>): Promise<Usuario> {

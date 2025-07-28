@@ -11,6 +11,7 @@ import { usuariosService } from "@/services/usuariosService";
 import { equipesService } from "@/services/equipesService";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Edit, Trash2, Users } from "lucide-react";
+import { MigrationHelper } from "@/components/MigrationHelper";
 
 export default function GerenciamentoUsuarios() {
   const { toast } = useToast();
@@ -201,6 +202,9 @@ export default function GerenciamentoUsuarios() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Migração Temporária */}
+        <MigrationHelper />
 
         {/* Lista de Usuários */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
