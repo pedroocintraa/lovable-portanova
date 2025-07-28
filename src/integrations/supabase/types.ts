@@ -162,6 +162,33 @@ export type Database = {
         }
         Relationships: []
       }
+      equipes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       historico_vendas: {
         Row: {
           data_alteracao: string | null
@@ -244,9 +271,11 @@ export type Database = {
           created_at: string | null
           data_cadastro: string | null
           email: string
+          equipe_id: string | null
           funcao: Database["public"]["Enums"]["funcao_usuario"]
           id: string
           nome: string
+          supervisor_equipe_id: string | null
           telefone: string
           updated_at: string | null
         }
@@ -256,9 +285,11 @@ export type Database = {
           created_at?: string | null
           data_cadastro?: string | null
           email: string
+          equipe_id?: string | null
           funcao?: Database["public"]["Enums"]["funcao_usuario"]
           id?: string
           nome: string
+          supervisor_equipe_id?: string | null
           telefone: string
           updated_at?: string | null
         }
@@ -268,13 +299,30 @@ export type Database = {
           created_at?: string | null
           data_cadastro?: string | null
           email?: string
+          equipe_id?: string | null
           funcao?: Database["public"]["Enums"]["funcao_usuario"]
           id?: string
           nome?: string
+          supervisor_equipe_id?: string | null
           telefone?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "equipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuarios_supervisor_equipe_id_fkey"
+            columns: ["supervisor_equipe_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vendas: {
         Row: {

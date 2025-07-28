@@ -108,7 +108,10 @@ class UserService {
           podeAcessarTodasVendas: true,
           podeAcessarApenasPropriaVendas: false,
           podeGerenciarUsuarios: true,
-          podeEditarVendas: true
+          podeEditarVendas: true,
+          podeGerenciarEquipes: true,
+          podeCriarSupervisorEquipe: true,
+          podeCriarVendedor: true,
         };
       
       case FuncaoUsuario.SUPERVISOR:
@@ -116,17 +119,35 @@ class UserService {
           podeAcessarDashboard: true,
           podeAcessarTodasVendas: true,
           podeAcessarApenasPropriaVendas: false,
-          podeGerenciarUsuarios: false,
-          podeEditarVendas: true
+          podeGerenciarUsuarios: true,
+          podeEditarVendas: true,
+          podeGerenciarEquipes: false,
+          podeCriarSupervisorEquipe: true,
+          podeCriarVendedor: true,
+        };
+      
+      case FuncaoUsuario.SUPERVISOR_EQUIPE:
+        return {
+          podeAcessarDashboard: true,
+          podeAcessarTodasVendas: false,
+          podeAcessarApenasPropriaVendas: true,
+          podeGerenciarUsuarios: true,
+          podeEditarVendas: true,
+          podeGerenciarEquipes: false,
+          podeCriarSupervisorEquipe: false,
+          podeCriarVendedor: true,
         };
       
       case FuncaoUsuario.VENDEDOR:
         return {
-          podeAcessarDashboard: false,
+          podeAcessarDashboard: true,
           podeAcessarTodasVendas: false,
           podeAcessarApenasPropriaVendas: true,
           podeGerenciarUsuarios: false,
-          podeEditarVendas: false
+          podeEditarVendas: false,
+          podeGerenciarEquipes: false,
+          podeCriarSupervisorEquipe: false,
+          podeCriarVendedor: false,
         };
       
       default:
@@ -135,7 +156,10 @@ class UserService {
           podeAcessarTodasVendas: false,
           podeAcessarApenasPropriaVendas: false,
           podeGerenciarUsuarios: false,
-          podeEditarVendas: false
+          podeEditarVendas: false,
+          podeGerenciarEquipes: false,
+          podeCriarSupervisorEquipe: false,
+          podeCriarVendedor: false,
         };
     }
   }

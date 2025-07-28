@@ -51,6 +51,12 @@ export const Navbar = () => {
       permitido: permissoes?.podeGerenciarUsuarios
     },
     { 
+      path: "/equipes", 
+      label: "Equipes", 
+      icon: Users,
+      permitido: permissoes?.podeGerenciarEquipes
+    },
+    { 
       path: "/configuracoes", 
       label: "Configurações", 
       icon: Settings,

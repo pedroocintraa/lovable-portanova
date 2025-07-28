@@ -4,7 +4,8 @@
 
 export enum FuncaoUsuario {
   ADMINISTRADOR_GERAL = "ADMINISTRADOR_GERAL",
-  SUPERVISOR = "SUPERVISOR", 
+  SUPERVISOR = "SUPERVISOR",
+  SUPERVISOR_EQUIPE = "SUPERVISOR_EQUIPE",
   VENDEDOR = "VENDEDOR"
 }
 
@@ -17,6 +18,8 @@ export interface Usuario {
   funcao: FuncaoUsuario;
   dataCadastro: string;
   ativo: boolean;
+  equipeId?: string;
+  supervisorEquipeId?: string;
 }
 
 export interface UsuarioFormData extends Omit<Usuario, "id" | "dataCadastro" | "ativo"> {
@@ -29,4 +32,7 @@ export interface PermissoesUsuario {
   podeAcessarApenasPropriaVendas: boolean;
   podeGerenciarUsuarios: boolean;
   podeEditarVendas: boolean;
+  podeGerenciarEquipes: boolean;
+  podeCriarSupervisorEquipe: boolean;
+  podeCriarVendedor: boolean;
 }
