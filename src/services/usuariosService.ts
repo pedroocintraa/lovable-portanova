@@ -81,52 +81,32 @@ class UsuariosService {
   }
 
   async atualizarUsuario(id: string, usuario: Partial<Usuario>): Promise<Usuario> {
-    const usuarioFormatado = {
-      ...(usuario.nome && { nome: usuario.nome.toUpperCase() }),
-      ...(usuario.telefone && { telefone: usuario.telefone }),
-      ...(usuario.email && { email: usuario.email.toLowerCase() }),
-      ...(usuario.cpf && { cpf: usuario.cpf }),
-      ...(usuario.funcao && { funcao: usuario.funcao }),
-      equipe_id: usuario.equipeId || null,
-      supervisor_equipe_id: usuario.supervisorEquipeId || null
-    };
-
-    // Se o email está sendo alterado, sincronizar com Supabase Auth
-    if (usuario.email) {
-      try {
-        const { error: authError } = await supabase.auth.admin.updateUserById(id, {
-          email: usuario.email.toLowerCase(),
-          user_metadata: {
-            ...(usuario.nome && { nome: usuario.nome.toUpperCase() }),
-            ...(usuario.funcao && { funcao: usuario.funcao }),
-          }
-        });
-
-        if (authError) {
-          console.error('Erro ao atualizar email no Auth:', authError);
-          throw new Error('Erro ao sincronizar email com o sistema de autenticação: ' + authError.message);
+    // Chamar Edge Function para atualizar usuário (inclui sincronização com Auth)
+    try {
+      const { data: updatedUser, error: functionError } = await supabase.functions.invoke('update-user', {
+        body: {
+          userId: id,
+          ...(usuario.nome && { nome: usuario.nome }),
+          ...(usuario.telefone && { telefone: usuario.telefone }),
+          ...(usuario.email && { email: usuario.email }),
+          ...(usuario.cpf && { cpf: usuario.cpf }),
+          ...(usuario.funcao && { funcao: usuario.funcao }),
+          ...(usuario.equipeId !== undefined && { equipeId: usuario.equipeId }),
+          ...(usuario.supervisorEquipeId !== undefined && { supervisorEquipeId: usuario.supervisorEquipeId }),
         }
-        
-        console.log('Email sincronizado com sucesso no Supabase Auth');
-      } catch (error: any) {
-        console.error('Erro na sincronização com Auth:', error);
-        throw new Error('Erro ao sincronizar dados com o sistema de autenticação');
+      });
+
+      if (functionError) {
+        console.error('Erro na Edge Function update-user:', functionError);
+        throw new Error(functionError.message || 'Erro ao atualizar usuário');
       }
-    }
 
-    const { data, error } = await supabase
-      .from('usuarios')
-      .update(usuarioFormatado)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Erro ao atualizar usuário:', error);
+      console.log('Usuário atualizado com sucesso via Edge Function');
+      return updatedUser;
+    } catch (error: any) {
+      console.error('Erro ao chamar Edge Function:', error);
       throw new Error('Erro ao atualizar usuário: ' + error.message);
     }
-
-    return this.converterParaUsuario(data);
   }
 
   async obterUsuariosInativos(): Promise<Usuario[]> {
