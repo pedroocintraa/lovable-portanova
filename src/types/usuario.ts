@@ -20,6 +20,7 @@ export interface Usuario {
   ativo: boolean;
   equipeId?: string;
   supervisorEquipeId?: string;
+  nomeEquipe?: string;
 }
 
 export interface UsuarioFormData extends Omit<Usuario, "id" | "dataCadastro" | "ativo"> {

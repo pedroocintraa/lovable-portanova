@@ -472,6 +472,7 @@ export default function GerenciamentoUsuarios() {
                   <p><strong>Email:</strong> {usuario.email}</p>
                   <p><strong>Telefone:</strong> {usuario.telefone}</p>
                   <p><strong>CPF:</strong> {usuario.cpf}</p>
+                  <p><strong>Equipe:</strong> {usuario.nomeEquipe || "Sem equipe"}</p>
                   <p><strong>Cadastro:</strong> {new Date(usuario.dataCadastro).toLocaleDateString()}</p>
                 </div>
               </CardContent>

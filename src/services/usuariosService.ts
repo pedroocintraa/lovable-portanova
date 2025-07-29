@@ -5,7 +5,10 @@ class UsuariosService {
   async obterUsuarios(): Promise<Usuario[]> {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*')
+      .select(`
+        *,
+        equipes:equipe_id(nome)
+      `)
       .eq('ativo', true)
       .order('nome');
 
@@ -20,7 +23,10 @@ class UsuariosService {
   async obterUsuarioPorId(id: string): Promise<Usuario | null> {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*')
+      .select(`
+        *,
+        equipes:equipe_id(nome)
+      `)
       .eq('id', id)
       .eq('ativo', true)
       .maybeSingle();
@@ -112,7 +118,10 @@ class UsuariosService {
   async obterUsuariosInativos(): Promise<Usuario[]> {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*')
+      .select(`
+        *,
+        equipes:equipe_id(nome)
+      `)
       .eq('ativo', false)
       .order('nome');
 
@@ -424,7 +433,8 @@ class UsuariosService {
       dataCadastro: data.data_cadastro || data.created_at,
       ativo: data.ativo,
       equipeId: data.equipe_id,
-      supervisorEquipeId: data.supervisor_equipe_id
+      supervisorEquipeId: data.supervisor_equipe_id,
+      nomeEquipe: data.equipes?.nome || null
     };
   }
 
