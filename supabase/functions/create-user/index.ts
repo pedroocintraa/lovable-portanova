@@ -181,7 +181,11 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         user: dbUser,
-        message: "Usuário criado com sucesso. Um email de boas-vindas será enviado com as credenciais de acesso."
+        credentials: {
+          email: dbUser.email,
+          senha: "Trocar@123"
+        },
+        message: `Usuário ${dbUser.nome} criado com sucesso! Credenciais: Email: ${dbUser.email} | Senha: Trocar@123`
       }),
       {
         status: 200,

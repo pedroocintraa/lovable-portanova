@@ -103,18 +103,29 @@ export default function GerenciamentoUsuarios() {
     try {
       if (usuarioEditando) {
         await usuariosService.atualizarUsuario(usuarioEditando.id, usuario);
+        
+        carregarUsuarios();
+        setMostrarFormulario(false);
+        setUsuarioEditando(undefined);
+        
+        toast({
+          title: "Sucesso",
+          description: "Usuário atualizado com sucesso!",
+        });
       } else {
-        await usuariosService.salvarUsuario(usuario);
+        const response = await usuariosService.salvarUsuario(usuario);
+        
+        carregarUsuarios();
+        setMostrarFormulario(false);
+        setUsuarioEditando(undefined);
+        
+        // Mostrar credenciais para novo usuário
+        toast({
+          title: "Usuário criado com sucesso!",
+          description: `📧 Email: ${response.email}\n🔑 Senha: Trocar@123\n\nRepasse essas credenciais para o usuário.`,
+          duration: 10000, // 10 segundos para dar tempo de ler
+        });
       }
-      
-      carregarUsuarios();
-      setMostrarFormulario(false);
-      setUsuarioEditando(undefined);
-      
-      toast({
-        title: "Sucesso",
-        description: `Usuário ${usuarioEditando ? "atualizado" : "cadastrado"} com sucesso!`,
-      });
     } catch (error: any) {
       // Verificar se é erro de usuário já existente
       if (error.message && error.message.includes('já existe um usuário')) {
