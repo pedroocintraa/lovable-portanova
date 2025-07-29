@@ -414,6 +414,7 @@ const DetalhesVenda = () => {
               <StatusManager
                 venda={venda}
                 onStatusChange={handleStatusChange}
+                showLostOption={true}
               />
               
               <div className="flex flex-col gap-2 pt-4 border-t">

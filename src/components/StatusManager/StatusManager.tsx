@@ -4,53 +4,55 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Calendar, FileX } from "lucide-react";
+import { AlertCircle, Calendar, FileX, Play, Check, FileCheck, CheckCircle, X } from "lucide-react";
 import { Venda } from "@/types/venda";
 
 interface StatusManagerProps {
   venda: Venda;
   onStatusChange: (newStatus: Venda["status"], extraData?: { dataInstalacao?: string; motivoPerda?: string }) => void;
+  showLostOption?: boolean; // Controla se exibe a opção "Marcar como Perdida"
 }
 
-export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusChange }) => {
+export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusChange, showLostOption = true }) => {
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [dataInstalacao, setDataInstalacao] = useState("");
   const [motivoPerda, setMotivoPerda] = useState("");
 
   const getNextActions = () => {
+    const actions = [];
+    
     switch (venda.status) {
       case "pendente":
-        return [
-          { action: "em_andamento", label: "Iniciar Processo", variant: "default" as const },
-          { action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true }
-        ];
+        actions.push({ action: "em_andamento", label: "Iniciar Processo", variant: "default" as const, icon: "play" });
+        if (showLostOption) {
+          actions.push({ action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true, icon: "x" });
+        }
+        break;
       case "em_andamento":
-        return [
-          { action: "auditada", label: "Marcar como Auditada", variant: "default" as const },
-          { action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true }
-        ];
+        actions.push({ action: "auditada", label: "Marcar como Auditada", variant: "default" as const, icon: "check" });
+        if (showLostOption) {
+          actions.push({ action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true, icon: "x" });
+        }
+        break;
       case "auditada":
-        return [
-          { action: "gerada", label: "Marcar como Gerada", variant: "default" as const },
-          { action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true }
-        ];
+        actions.push({ action: "gerada", label: "Marcar como Gerada", variant: "default" as const, icon: "file-check" });
+        if (showLostOption) {
+          actions.push({ action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true, icon: "x" });
+        }
+        break;
       case "gerada":
-        return [
-          { action: "aguardando_habilitacao", label: "Aguardando Habilitação", variant: "default" as const, needsInstallDate: true },
-          { action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true }
-        ];
+        actions.push({ action: "aguardando_habilitacao", label: "Aguardando Habilitação", variant: "secondary" as const, needsInstallDate: true, icon: "calendar" });
+        if (showLostOption) {
+          actions.push({ action: "perdida", label: "Marcar como Perdida", variant: "destructive" as const, needsReason: true, icon: "x" });
+        }
+        break;
       case "aguardando_habilitacao":
-        return [
-          { action: "habilitada", label: "Marcar como Habilitada", variant: "default" as const }
-        ];
-      case "habilitada":
-        return [];
-      case "perdida":
-        return [];
-      default:
-        return [];
+        actions.push({ action: "habilitada", label: "Marcar como Habilitada", variant: "default" as const, icon: "check-circle" });
+        break;
     }
+    
+    return actions;
   };
 
   const handleAction = (action: Venda["status"], needsReason?: boolean, needsInstallDate?: boolean) => {
@@ -88,19 +90,32 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {actions.map((action) => (
-          <Button
-            key={action.action}
-            variant={action.variant}
-            size="sm"
-            onClick={() => handleAction(action.action, action.needsReason, action.needsInstallDate)}
-            className="flex items-center gap-2"
-          >
-            {action.variant === "destructive" && <FileX className="h-4 w-4" />}
-            {action.needsInstallDate && <Calendar className="h-4 w-4" />}
-            {action.label}
-          </Button>
-        ))}
+        {actions.map((action) => {
+          const getIcon = () => {
+            switch (action.icon) {
+              case "play": return <Play className="h-4 w-4" />;
+              case "check": return <Check className="h-4 w-4" />;
+              case "file-check": return <FileCheck className="h-4 w-4" />;
+              case "calendar": return <Calendar className="h-4 w-4" />;
+              case "check-circle": return <CheckCircle className="h-4 w-4" />;
+              case "x": return <X className="h-4 w-4" />;
+              default: return null;
+            }
+          };
+
+          return (
+            <Button
+              key={action.action}
+              variant={action.variant}
+              size="sm"
+              onClick={() => handleAction(action.action, action.needsReason, action.needsInstallDate)}
+              className="flex items-center gap-2"
+            >
+              {getIcon()}
+              {action.label}
+            </Button>
+          );
+        })}
       </div>
 
       {/* Install Date Dialog */}

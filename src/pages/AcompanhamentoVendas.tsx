@@ -295,6 +295,7 @@ const AcompanhamentoVendas = () => {
                   <div className="flex flex-col lg:flex-row gap-2 lg:items-center">
                     {/* Botão Ver Detalhes - Principal */}
                     <Button
+                      variant="outline"
                       onClick={() => navigate(`/venda/${venda.id}`)}
                       className="lg:min-w-[140px]"
                     >
@@ -307,6 +308,7 @@ const AcompanhamentoVendas = () => {
                       onStatusChange={(newStatus, extraData) => 
                         handleAtualizarStatus(venda.id, newStatus, extraData)
                       }
+                      showLostOption={false}
                     />
                   </div>
                 </div>

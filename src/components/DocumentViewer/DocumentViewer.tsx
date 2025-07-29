@@ -23,7 +23,8 @@ const DocumentViewer = ({ documentos, trigger }: DocumentViewerProps) => {
     ...(documentos.documentoClienteFrente || []),
     ...(documentos.documentoClienteVerso || []),
     ...(documentos.comprovanteEndereco || []),
-    ...(documentos.fachadaCasa || [])
+    ...(documentos.fachadaCasa || []),
+    ...(documentos.selfieCliente || [])
   ].length;
 
   /**
@@ -131,6 +132,7 @@ const DocumentViewer = ({ documentos, trigger }: DocumentViewerProps) => {
             {renderizarCategoria("Documento Cliente - Verso", documentos.documentoClienteVerso)}
             {renderizarCategoria("Comprovante de Endereço", documentos.comprovanteEndereco)}
             {renderizarCategoria("Fachada da Casa", documentos.fachadaCasa)}
+            {renderizarCategoria("Selfie do Cliente", documentos.selfieCliente)}
           </div>
         </DialogContent>
       </Dialog>
