@@ -27,6 +27,7 @@ import {
   Users
 } from "lucide-react";
 import { StatusManager } from "@/components/StatusManager/StatusManager";
+import { supabaseService } from "@/services/supabaseService";
 
 /**
  * Página de acompanhamento de vendas
@@ -49,16 +50,10 @@ const AcompanhamentoVendas = () => {
   useEffect(() => {
     const carregarVendas = async () => {
       try {
-        const { storageService } = await import("@/services/storageService");
-        
-        // Executar migração automática de vendas sem equipe
-        const vendasAtualizadas = await storageService.migrarVendasSemEquipe();
-        if (vendasAtualizadas > 0) {
-          console.log(`✅ ${vendasAtualizadas} vendas foram atualizadas com dados de equipe`);
-        }
-        
-        const vendasCarregadas = await storageService.obterVendas(usuario);
+        // Carregar vendas do Supabase (RLS aplica automaticamente as regras de acesso)
+        const vendasCarregadas = await supabaseService.obterVendas();
         setVendas(vendasCarregadas);
+        console.log(`📊 ${vendasCarregadas.length} vendas carregadas do Supabase`);
       } catch (error) {
         console.error("Erro ao carregar vendas:", error);
         toast({
@@ -132,18 +127,11 @@ const AcompanhamentoVendas = () => {
     extraData?: { dataInstalacao?: string; motivoPerda?: string }
   ) => {
     try {
-      const { storageService } = await import("@/services/storageService");
-      await storageService.atualizarStatusVenda(id, novoStatus, extraData);
+      await supabaseService.atualizarStatusVenda(id, novoStatus, extraData);
       
-      // Atualizar estado local
-      setVendas(vendas.map(venda => 
-        venda.id === id ? { 
-          ...venda, 
-          status: novoStatus,
-          ...(extraData?.dataInstalacao && { dataInstalacao: extraData.dataInstalacao }),
-          ...(extraData?.motivoPerda && { motivoPerda: extraData.motivoPerda })
-        } : venda
-      ));
+      // Recarregar vendas para refletir mudanças
+      const vendasAtualizadas = await supabaseService.obterVendas();
+      setVendas(vendasAtualizadas);
 
       toast({
         title: "Status atualizado",

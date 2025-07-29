@@ -15,6 +15,7 @@ import { Loader2, User, MapPin, Settings, CreditCard, Calendar, Camera } from "l
 import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
 import CameraUpload from "@/components/CameraUpload/CameraUpload";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabaseService } from "@/services/supabaseService";
 
 /**
  * Página de cadastro de nova venda
@@ -147,40 +148,18 @@ const CadastroVenda = () => {
     };
 
     try {
-      // Buscar dados da equipe do usuário
-      let equipeId: string | undefined;
-      let equipeNome: string | undefined;
-      
-      if (usuario?.equipeId) {
-        try {
-          const { equipesService } = await import("@/services/equipesService");
-          const equipe = await equipesService.obterEquipePorId(usuario.equipeId);
-          equipeId = equipe?.id;
-          equipeNome = equipe?.nome;
-        } catch (error) {
-          console.warn("Erro ao buscar dados da equipe:", error);
-        }
-      }
-
-      const novaVenda: Venda = {
-        id: `venda_${Date.now()}`,
+      // Construir dados da venda para Supabase
+      const vendaData: VendaFormData = {
         cliente: dadosProcessados.cliente,
         documentos: documentos,
-        status: "pendente",
-        dataVenda: new Date().toISOString(),
-        dataGeracao: new Date().toISOString(),
         observacoes: dadosProcessados.observacoes,
-        vendedorId: usuario?.id,
-        vendedorNome: usuario?.nome,
-        equipeId,
-        equipeNome,
         planoId: planoSelecionado,
-        diaVencimento: parseInt(diaVencimento)
+        diaVencimento: parseInt(diaVencimento),
+        dataGeracao: new Date().toISOString()
       };
 
-      // Usar o novo serviço de armazenamento
-      const { storageService } = await import("@/services/storageService");
-      await storageService.salvarVenda(novaVenda);
+      // Salvar venda no Supabase
+      await supabaseService.salvarVenda(vendaData);
       
       toast({
         title: "Venda cadastrada",

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Download, Eye, FileText, User, MapPin, Calendar, Phone, Mail, CreditCard, AlertTriangle } from "lucide-react";
 import { Venda, DocumentoAnexado } from "@/types/venda";
-import { storageService } from "@/services/storageService";
+import { supabaseService } from "@/services/supabaseService";
 import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
 import { StatusManager } from "@/components/StatusManager/StatusManager";
 import { StatusSelector } from "@/components/StatusSelector/StatusSelector";
@@ -28,9 +28,10 @@ const DetalhesVenda = () => {
 
     const carregarVenda = async () => {
       try {
-        const vendaCompleta = await storageService.obterVendaCompleta(id);
+        const vendaCompleta = await supabaseService.obterVendaCompleta(id);
         if (vendaCompleta) {
           setVenda(vendaCompleta);
+          console.log('✅ Venda carregada do Supabase:', vendaCompleta);
         } else {
           toast({
             title: "Erro",
@@ -92,8 +93,8 @@ const DetalhesVenda = () => {
     if (!venda) return;
     
     try {
-      await storageService.atualizarStatusVenda(venda.id, novoStatus, extraData);
-      const vendaAtualizada = await storageService.obterVendaCompleta(venda.id);
+      await supabaseService.atualizarStatusVenda(venda.id, novoStatus, extraData);
+      const vendaAtualizada = await supabaseService.obterVendaCompleta(venda.id);
       if (vendaAtualizada) {
         setVenda(vendaAtualizada);
         toast({
