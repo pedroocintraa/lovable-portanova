@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Usuario, FuncaoUsuario, PermissoesUsuario } from "@/types/usuario";
+import { Usuario, PermissoesUsuario } from "@/types/usuario";
 import { usuariosService } from "@/services/usuariosService";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';

@@ -60,9 +60,9 @@ const DocumentUpload = ({
       }
 
       try {
-        // Usar storageService para processar o arquivo com compressão
-        const { storageService } = await import("@/services/storageService");
-        const documento = await storageService.processFile(file);
+        // Usar fileService para processar o arquivo com compressão
+        const { fileService } = await import("@/services/fileService");
+        const documento = await fileService.processFile(file);
         novosDocumentos.push(documento);
       } catch (error) {
         console.error("Erro ao processar arquivo:", error);

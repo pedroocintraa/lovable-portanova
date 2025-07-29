@@ -52,9 +52,9 @@ const CameraUpload = ({
 
       setIsCapturing(true);
 
-      // Usar storageService para processar o arquivo com compressão
-      const { storageService } = await import("@/services/storageService");
-      const documento = await storageService.processFile(file);
+      // Usar fileService para processar o arquivo com compressão
+      const { fileService } = await import("@/services/fileService");
+      const documento = await fileService.processFile(file);
       
       // Substituir documento existente (máximo 1 selfie)
       onDocumentosChange([documento]);
