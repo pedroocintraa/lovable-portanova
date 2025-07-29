@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Layout/Navbar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import CadastroVenda from "./pages/CadastroVenda";
 import AcompanhamentoVendas from "./pages/AcompanhamentoVendas";
@@ -40,8 +41,16 @@ const App = () => (
                       <Route path="/vendas" element={<CadastroVenda />} />
                       <Route path="/acompanhamento" element={<AcompanhamentoVendas />} />
                       <Route path="/venda/:id" element={<DetalhesVenda />} />
-                      <Route path="/usuarios" element={<GerenciamentoUsuarios />} />
-                      <Route path="/equipes" element={<GerenciamentoEquipes />} />
+                      <Route path="/usuarios" element={
+                        <RoleProtectedRoute requiredPermission="podeGerenciarUsuarios">
+                          <GerenciamentoUsuarios />
+                        </RoleProtectedRoute>
+                      } />
+                      <Route path="/equipes" element={
+                        <RoleProtectedRoute requiredPermission="podeGerenciarEquipes">
+                          <GerenciamentoEquipes />
+                        </RoleProtectedRoute>
+                      } />
                       <Route path="/configuracoes" element={<Configuracoes />} />
                       <Route path="/change-password" element={<ChangePassword />} />
                       <Route path="*" element={<NotFound />} />
