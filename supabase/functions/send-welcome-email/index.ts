@@ -1,8 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { Resend } from "npm:resend@2.0.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Configuração SMTP
+const client = new SMTPClient({
+  connection: {
+    hostname: Deno.env.get("SMTP_HOST") || "smtp.gmail.com",
+    port: parseInt(Deno.env.get("SMTP_PORT") || "587"),
+    tls: true,
+    auth: {
+      username: Deno.env.get("SMTP_USER") || "",
+      password: Deno.env.get("SMTP_PASS") || "",
+    },
+  },
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -149,19 +160,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailHTML = generateWelcomeEmailHTML(nome, funcao, senha_temporaria);
 
-    const emailResponse = await resend.emails.send({
-      from: "Sistema de Vendas <onboarding@resend.dev>",
-      to: [email],
+    // Verificar se as configurações SMTP estão definidas
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+    
+    if (!smtpUser || !smtpPass) {
+      throw new Error("Configurações SMTP não encontradas. Configure SMTP_USER e SMTP_PASS.");
+    }
+
+    // Enviar email via SMTP
+    await client.send({
+      from: `${Deno.env.get("SMTP_FROM_NAME") || "Sistema de Vendas"} <${smtpUser}>`,
+      to: email,
       subject: "🎉 Bem-vindo ao Sistema de Vendas!",
       html: emailHTML,
     });
 
-    console.log("Email enviado com sucesso:", emailResponse);
+    console.log("Email enviado com sucesso via SMTP para:", email);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Email de boas-vindas enviado com sucesso",
-      email_id: emailResponse.data?.id 
+      message: "Email de boas-vindas enviado com sucesso via SMTP",
+      recipient: email
     }), {
       status: 200,
       headers: {
