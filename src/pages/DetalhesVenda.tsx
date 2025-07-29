@@ -418,6 +418,13 @@ const DetalhesVenda = () => {
                 showLostOption={true}
               />
               
+              <Separator className="my-4" />
+              
+              <StatusSelector
+                venda={venda}
+                onStatusChange={handleStatusChange}
+              />
+              
               <div className="flex flex-col gap-2 pt-4 border-t">
                 <Button 
                   onClick={exportarDadosVenda}

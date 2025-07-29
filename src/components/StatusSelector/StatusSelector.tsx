@@ -40,12 +40,6 @@ export const StatusSelector: React.FC<StatusSelectorProps> = ({ venda, onStatusC
 
   const handleStatusSelect = (status: Venda["status"]) => {
     setSelectedStatus(status);
-    
-    // Não permitir voltar de habilitada
-    if (venda.status === "habilitada" && status !== "habilitada") {
-      return;
-    }
-    
     setShowConfirmDialog(true);
   };
 
@@ -78,11 +72,7 @@ export const StatusSelector: React.FC<StatusSelectorProps> = ({ venda, onStatusC
   };
 
   const isStatusDisabled = (status: Venda["status"]) => {
-    // Não permitir voltar de habilitada
-    if (venda.status === "habilitada" && status !== "habilitada") {
-      return true;
-    }
-    return false;
+    return false; // Permitir qualquer mudança para admins/supervisores
   };
 
   return (
