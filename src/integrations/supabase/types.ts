@@ -548,6 +548,13 @@ export type Database = {
         Args: { p_usuario_id: string; p_email: string; p_senha?: string }
         Returns: undefined
       }
+      sincronizar_usuario_inconsistente: {
+        Args: { p_email: string }
+        Returns: {
+          sucesso: boolean
+          mensagem: string
+        }[]
+      }
       text_to_bytea: {
         Args: { data: string }
         Returns: string
@@ -561,6 +568,15 @@ export type Database = {
         Returns: {
           is_valid: boolean
           error_message: string
+        }[]
+      }
+      verificar_consistencia_usuario: {
+        Args: { p_email: string }
+        Returns: {
+          consistente: boolean
+          usuario_id: string
+          auth_id: string
+          problema: string
         }[]
       }
     }
