@@ -77,7 +77,7 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@teste.com"
+                placeholder="seu@email.com"
                 required
                 disabled={loading}
               />
@@ -90,7 +90,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="admin123"
+                placeholder="Sua senha"
                 required
                 disabled={loading}
               />
@@ -110,12 +110,6 @@ export default function Login() {
                 'Entrar'
               )}
             </Button>
-            
-            <div className="text-sm text-muted-foreground text-center mt-4">
-              <p>Usuário padrão:</p>
-              <p><strong>Email:</strong> admin@teste.com</p>
-              <p><strong>Senha:</strong> admin123</p>
-            </div>
           </form>
         </CardContent>
       </Card>

@@ -237,6 +237,53 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           ativo: boolean | null
@@ -449,6 +496,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_table_name?: string
+          p_record_id?: string
+          p_old_values?: Json
+          p_new_values?: Json
+        }
+        Returns: undefined
+      }
       migrar_usuario_para_auth: {
         Args: { p_usuario_id: string; p_email: string; p_senha?: string }
         Returns: undefined
@@ -460,6 +517,13 @@ export type Database = {
       urlencode: {
         Args: { data: Json } | { string: string } | { string: string }
         Returns: string
+      }
+      validate_file_upload: {
+        Args: { p_file_name: string; p_file_size: number; p_mime_type: string }
+        Returns: {
+          is_valid: boolean
+          error_message: string
+        }[]
       }
     }
     Enums: {
