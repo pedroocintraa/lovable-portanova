@@ -24,43 +24,93 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/*" element={
+              <Route path="/" element={
                 <ProtectedRoute>
                   <Navbar />
                   <main className="container mx-auto px-4 py-8">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/vendas" element={<CadastroVenda />} />
-                      <Route path="/acompanhamento" element={<AcompanhamentoVendas />} />
-                      <Route path="/venda/:id" element={<DetalhesVenda />} />
-                      <Route path="/usuarios" element={
-                        <RoleProtectedRoute requiredPermission="podeGerenciarUsuarios">
-                          <GerenciamentoUsuarios />
-                        </RoleProtectedRoute>
-                      } />
-                      <Route path="/equipes" element={
-                        <RoleProtectedRoute requiredPermission="podeGerenciarEquipes">
-                          <GerenciamentoEquipes />
-                        </RoleProtectedRoute>
-                      } />
-                      <Route path="/configuracoes" element={<Configuracoes />} />
-                      <Route path="/change-password" element={<ChangePassword />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
+                    <Dashboard />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/vendas" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <CadastroVenda />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/acompanhamento" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <AcompanhamentoVendas />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/venda/:id" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <DetalhesVenda />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/usuarios" element={
+                <ProtectedRoute>
+                  <RoleProtectedRoute requiredPermission="podeGerenciarUsuarios">
+                    <Navbar />
+                    <main className="container mx-auto px-4 py-8">
+                      <GerenciamentoUsuarios />
+                    </main>
+                  </RoleProtectedRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/equipes" element={
+                <ProtectedRoute>
+                  <RoleProtectedRoute requiredPermission="podeGerenciarEquipes">
+                    <Navbar />
+                    <main className="container mx-auto px-4 py-8">
+                      <GerenciamentoEquipes />
+                    </main>
+                  </RoleProtectedRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/configuracoes" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <Configuracoes />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/change-password" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <ChangePassword />
+                  </main>
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <NotFound />
                   </main>
                 </ProtectedRoute>
               } />
             </Routes>
           </div>
-        </BrowserRouter>
-      </AuthProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
