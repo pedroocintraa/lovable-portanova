@@ -129,44 +129,74 @@ class StorageService {
     });
   }
 
-  // Buscar dados da equipe do usuário
-  private async buscarDadosEquipe(equipeId: string | null): Promise<{ equipeId?: string; equipeNome?: string }> {
-    if (!equipeId) return {};
-    
+  // Buscar dados da equipe do vendedor no Supabase
+  private async buscarDadosEquipe(vendedorId: string): Promise<{ equipeId?: string; equipeNome?: string } | null> {
     try {
-      const { equipesService } = await import("@/services/equipesService");
-      const equipe = await equipesService.obterEquipePorId(equipeId);
+      console.log('🔍 Buscando dados da equipe para vendedor:', vendedorId);
+      
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: vendedor, error: vendedorError } = await supabase
+        .from('usuarios')
+        .select('equipe_id')
+        .eq('id', vendedorId)
+        .single();
+
+      if (vendedorError) {
+        console.error('❌ Erro ao buscar vendedor:', vendedorError);
+        return null;
+      }
+
+      if (!vendedor?.equipe_id) {
+        console.log('⚠️ Vendedor sem equipe associada:', vendedorId);
+        return null;
+      }
+
+      console.log('🔍 Buscando equipe:', vendedor.equipe_id);
+
+      const { data: equipe, error: equipeError } = await supabase
+        .from('equipes')
+        .select('id, nome')
+        .eq('id', vendedor.equipe_id)
+        .single();
+
+      if (equipeError) {
+        console.error('❌ Erro ao buscar equipe:', equipeError);
+        return null;
+      }
+
+      if (!equipe) {
+        console.log('⚠️ Equipe não encontrada:', vendedor.equipe_id);
+        return null;
+      }
+
+      console.log('✅ Dados da equipe encontrados:', equipe);
       return {
-        equipeId: equipe?.id,
-        equipeNome: equipe?.nome
+        equipeId: equipe.id,
+        equipeNome: equipe.nome
       };
     } catch (error) {
-      console.warn("Erro ao buscar dados da equipe:", error);
-      return { equipeId };
+      console.error('❌ Erro ao buscar dados da equipe:', error);
+      return null;
     }
   }
 
   // Salvar venda
   async salvarVenda(venda: Venda): Promise<void> {
     try {
+      console.log('💾 Salvando venda com vendedor:', venda.vendedorId, 'equipe atual:', venda.equipeId);
+      
       // Enriquecer venda com dados da equipe se necessário
       let vendaEnriquecida = { ...venda };
       
       if (venda.vendedorId && !venda.equipeId) {
-        try {
-          const { supabase } = await import("@/integrations/supabase/client");
-          const { data: usuario } = await supabase
-            .from('usuarios')
-            .select('equipe_id')
-            .eq('id', venda.vendedorId)
-            .maybeSingle();
-          
-          if (usuario?.equipe_id) {
-            const dadosEquipe = await this.buscarDadosEquipe(usuario.equipe_id);
-            vendaEnriquecida = { ...vendaEnriquecida, ...dadosEquipe };
-          }
-        } catch (error) {
-          console.warn("Erro ao buscar equipe do vendedor:", error);
+        console.log('🔄 Enriquecendo venda com dados da equipe...');
+        const dadosEquipe = await this.buscarDadosEquipe(venda.vendedorId);
+        if (dadosEquipe) {
+          vendaEnriquecida.equipeId = dadosEquipe.equipeId;
+          vendaEnriquecida.equipeNome = dadosEquipe.equipeNome;
+          console.log('✅ Venda enriquecida com equipe:', dadosEquipe);
+        } else {
+          console.log('⚠️ Não foi possível enriquecer venda com dados da equipe');
         }
       }
 
@@ -186,8 +216,10 @@ class StorageService {
       if (documentos && Object.keys(documentos).length > 0) {
         await this.saveDocuments(vendaEnriquecida.id, documentos);
       }
+
+      console.log('✅ Venda salva com sucesso');
     } catch (error) {
-      console.error("Erro ao salvar venda:", error);
+      console.error("❌ Erro ao salvar venda:", error);
       throw new Error("Falha ao salvar venda");
     }
   }
@@ -260,6 +292,46 @@ class StorageService {
     } catch (error) {
       console.error("Erro ao atualizar status da venda:", error);
       throw new Error("Falha ao atualizar status");
+    }
+  }
+
+  // Migrar vendas existentes que não possuem dados de equipe
+  async migrarVendasSemEquipe(): Promise<number> {
+    try {
+      console.log('🔄 Iniciando migração de vendas sem equipe...');
+      
+      const vendasMetadata = this.obterVendasMetadata();
+      let vendasAtualizadas = 0;
+      
+      for (let i = 0; i < vendasMetadata.length; i++) {
+        const venda = vendasMetadata[i];
+        
+        if (venda.vendedorId && !venda.equipeId) {
+          console.log('🔄 Migrando venda:', venda.id, 'vendedor:', venda.vendedorNome);
+          
+          const dadosEquipe = await this.buscarDadosEquipe(venda.vendedorId);
+          if (dadosEquipe) {
+            venda.equipeId = dadosEquipe.equipeId;
+            venda.equipeNome = dadosEquipe.equipeNome;
+            vendasAtualizadas++;
+            console.log('✅ Venda migrada com equipe:', dadosEquipe.equipeNome);
+          } else {
+            console.log('⚠️ Não foi possível obter dados da equipe para:', venda.vendedorNome);
+          }
+        }
+      }
+      
+      if (vendasAtualizadas > 0) {
+        localStorage.setItem(VENDAS_KEY, JSON.stringify(vendasMetadata));
+        console.log(`✅ Migração concluída: ${vendasAtualizadas} vendas atualizadas`);
+      } else {
+        console.log('ℹ️ Nenhuma venda precisou ser migrada');
+      }
+      
+      return vendasAtualizadas;
+    } catch (error) {
+      console.error('❌ Erro durante migração de vendas:', error);
+      return 0;
     }
   }
 

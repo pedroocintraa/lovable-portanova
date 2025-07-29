@@ -39,6 +39,13 @@ const AcompanhamentoVendas = () => {
     const carregarVendas = async () => {
       try {
         const { storageService } = await import("@/services/storageService");
+        
+        // Executar migração automática de vendas sem equipe
+        const vendasAtualizadas = await storageService.migrarVendasSemEquipe();
+        if (vendasAtualizadas > 0) {
+          console.log(`✅ ${vendasAtualizadas} vendas foram atualizadas com dados de equipe`);
+        }
+        
         const vendasCarregadas = await storageService.obterVendas();
         setVendas(vendasCarregadas);
       } catch (error) {

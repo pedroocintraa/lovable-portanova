@@ -23,6 +23,13 @@ const Dashboard = () => {
     const carregarEstatisticas = async () => {
       try {
         const { storageService } = await import("@/services/storageService");
+        
+        // Executar migração automática antes de calcular estatísticas
+        const vendasAtualizadas = await storageService.migrarVendasSemEquipe();
+        if (vendasAtualizadas > 0) {
+          console.log(`✅ Dashboard: ${vendasAtualizadas} vendas foram atualizadas com dados de equipe`);
+        }
+        
         const stats = storageService.obterEstatisticasVendas();
         setEstatisticas(stats);
       } catch (error) {
