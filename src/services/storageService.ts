@@ -385,10 +385,57 @@ class StorageService {
       vendasAguardandoHabilitacao,
       vendasHabilitadas,
       vendasPerdidas,
+      vendasAprovadas: vendasHabilitadas, // Alias para compatibilidade
       vendasPorBairro,
       vendasPorCidade,
       vendasPorVendedor,
       vendasPorEquipe,
+      taxaConversao: totalVendas > 0 ? (vendasHabilitadas / totalVendas) * 100 : 0
+    };
+  }
+
+  // Obter estatísticas específicas de um vendedor
+  obterEstatisticasVendasPorVendedor(vendedorId: string) {
+    const todasVendas = this.obterVendasMetadata();
+    const vendas = todasVendas.filter(v => v.vendedorId === vendedorId);
+    
+    const totalVendas = vendas.length;
+    const vendasPendentes = vendas.filter(v => v.status === "pendente").length;
+    const vendasEmAndamento = vendas.filter(v => v.status === "em_andamento").length;
+    const vendasAuditadas = vendas.filter(v => v.status === "auditada").length;
+    const vendasGeradas = vendas.filter(v => v.status === "gerada").length;
+    const vendasAguardandoHabilitacao = vendas.filter(v => v.status === "aguardando_habilitacao").length;
+    const vendasHabilitadas = vendas.filter(v => v.status === "habilitada").length;
+    const vendasPerdidas = vendas.filter(v => v.status === "perdida").length;
+
+    // Vendas por bairro (do vendedor)
+    const vendasPorBairro = vendas.reduce((acc, venda) => {
+      const bairro = venda.cliente.endereco.bairro;
+      acc[bairro] = (acc[bairro] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Vendas por cidade (do vendedor)
+    const vendasPorCidade = vendas.reduce((acc, venda) => {
+      const cidade = venda.cliente.endereco.localidade;
+      acc[cidade] = (acc[cidade] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalVendas,
+      vendasPendentes,
+      vendasEmAndamento,
+      vendasAuditadas,
+      vendasGeradas,
+      vendasAguardandoHabilitacao,
+      vendasHabilitadas,
+      vendasPerdidas,
+      vendasAprovadas: vendasHabilitadas, // Alias para compatibilidade
+      vendasPorBairro,
+      vendasPorCidade,
+      vendasPorVendedor: {}, // Vazio para vendedor individual
+      vendasPorEquipe: {}, // Vazio para vendedor individual
       taxaConversao: totalVendas > 0 ? (vendasHabilitadas / totalVendas) * 100 : 0
     };
   }
