@@ -45,7 +45,7 @@ export const Navbar = () => {
     },
     { 
       path: "/acompanhamento", 
-      label: "Acompanhamento", 
+      label: "Vendas", 
       icon: Eye,
       permitido: true // Todos podem ver vendas (filtro aplicado na página)
     },

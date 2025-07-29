@@ -13,6 +13,7 @@ import { Venda, VendaFormData, DocumentoAnexado, DocumentosVenda } from "@/types
 import type { Plano } from "@/types/configuracao";
 import { Loader2, User, MapPin, Settings, CreditCard, Calendar, Camera } from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload/DocumentUpload";
+import CameraUpload from "@/components/CameraUpload/CameraUpload";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -448,26 +449,11 @@ const CadastroVenda = () => {
           </div>
 
           {/* Selfie do Cliente */}
-          <Card className="bg-gradient-card shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Camera className="h-5 w-5 text-primary" />
-                <span>Selfie do Cliente</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DocumentUpload
-                titulo="Selfie do Cliente *"
-                documentos={documentos.selfieCliente || []}
-                onDocumentosChange={(docs) => handleDocumentosChange('selfieCliente', docs)}
-                acceptTypes="image/*"
-                maxFiles={1}
-              />
-              <p className="text-sm text-muted-foreground mt-2">
-                A selfie do cliente é obrigatória para validação da identidade
-              </p>
-            </CardContent>
-          </Card>
+          <CameraUpload
+            titulo="Selfie do Cliente *"
+            documentos={documentos.selfieCliente || []}
+            onDocumentosChange={(docs) => handleDocumentosChange('selfieCliente', docs)}
+          />
         </div>
 
         {/* Ações */}

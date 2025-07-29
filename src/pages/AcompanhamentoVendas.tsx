@@ -132,7 +132,7 @@ const AcompanhamentoVendas = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Acompanhamento de Vendas</h1>
+        <h1 className="text-3xl font-bold text-foreground">Vendas</h1>
           <p className="text-muted-foreground">Carregando vendas...</p>
         </div>
       </div>
@@ -143,7 +143,7 @@ const AcompanhamentoVendas = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Acompanhamento de Vendas</h1>
+        <h1 className="text-3xl font-bold text-foreground">Vendas</h1>
         <p className="text-muted-foreground">
           Gerencie e acompanhe o status das suas vendas
         </p>
