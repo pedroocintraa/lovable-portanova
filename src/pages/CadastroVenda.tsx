@@ -147,6 +147,21 @@ const CadastroVenda = () => {
     };
 
     try {
+      // Buscar dados da equipe do usuário
+      let equipeId: string | undefined;
+      let equipeNome: string | undefined;
+      
+      if (usuario?.equipeId) {
+        try {
+          const { equipesService } = await import("@/services/equipesService");
+          const equipe = await equipesService.obterEquipePorId(usuario.equipeId);
+          equipeId = equipe?.id;
+          equipeNome = equipe?.nome;
+        } catch (error) {
+          console.warn("Erro ao buscar dados da equipe:", error);
+        }
+      }
+
       const novaVenda: Venda = {
         id: `venda_${Date.now()}`,
         cliente: dadosProcessados.cliente,
@@ -156,6 +171,8 @@ const CadastroVenda = () => {
         observacoes: dadosProcessados.observacoes,
         vendedorId: usuario?.id,
         vendedorNome: usuario?.nome,
+        equipeId,
+        equipeNome,
         planoId: planoSelecionado,
         diaVencimento: parseInt(diaVencimento)
       };

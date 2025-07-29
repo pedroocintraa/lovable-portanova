@@ -8,7 +8,9 @@ import {
   CheckCircle, 
   XCircle,
   MapPin,
-  Building
+  Building,
+  Award,
+  Target
 } from "lucide-react";
 
 /**
@@ -40,6 +42,16 @@ const Dashboard = () => {
   const topCidades = estatisticas ? Object.entries(estatisticas.vendasPorCidade)
     .sort(([,a], [,b]) => (b as number) - (a as number))
     .slice(0, 5) : [];
+
+  // Top 5 vendedores com mais vendas
+  const topVendedores = estatisticas ? Object.entries(estatisticas.vendasPorVendedor)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 5) : [];
+
+  // Top 3 equipes com mais vendas
+  const topEquipes = estatisticas ? Object.entries(estatisticas.vendasPorEquipe)
+    .sort(([,a], [,b]) => (b as number) - (a as number))
+    .slice(0, 3) : [];
 
   if (!estatisticas) return <div>Carregando...</div>;
 
@@ -90,6 +102,75 @@ const Dashboard = () => {
 
       {/* Análises Detalhadas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Vendedores */}
+        <Card className="bg-gradient-card shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Award className="h-5 w-5 text-primary" />
+              <span>Top Vendedores</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {topVendedores.length > 0 ? (
+                topVendedores.map(([vendedor, quantidade], index) => (
+                  <div key={vendedor} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium text-foreground">{vendedor}</span>
+                    </div>
+                     <span className="text-sm font-semibold text-primary">
+                       {quantidade as number} vendas
+                     </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  Nenhuma venda registrada ainda
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Equipes */}
+        <Card className="bg-gradient-card shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Target className="h-5 w-5 text-success" />
+              <span>Top Equipes</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {topEquipes.length > 0 ? (
+                topEquipes.map(([equipe, quantidade], index) => (
+                  <div key={equipe} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-success/10 text-success rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium text-foreground">{equipe}</span>
+                    </div>
+                     <span className="text-sm font-semibold text-success">
+                       {quantidade as number} vendas
+                     </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  Nenhuma equipe com vendas ainda
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Análises por Localização */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Bairros */}
         <Card className="bg-gradient-card shadow-card">
           <CardHeader>
@@ -104,12 +185,12 @@ const Dashboard = () => {
                 topBairros.map(([bairro, quantidade], index) => (
                   <div key={bairro} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+                      <div className="bg-warning/10 text-warning rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
                         {index + 1}
                       </div>
                       <span className="font-medium text-foreground">{bairro}</span>
                     </div>
-                     <span className="text-sm font-semibold text-primary">
+                     <span className="text-sm font-semibold text-warning">
                        {quantidade as number} vendas
                      </span>
                   </div>
@@ -127,7 +208,7 @@ const Dashboard = () => {
         <Card className="bg-gradient-card shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-primary" />
+              <Building className="h-5 w-5 text-secondary" />
               <span>Top Cidades</span>
             </CardTitle>
           </CardHeader>
@@ -137,12 +218,12 @@ const Dashboard = () => {
                 topCidades.map(([cidade, quantidade], index) => (
                   <div key={cidade} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-success/10 text-success rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+                      <div className="bg-secondary/10 text-secondary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
                         {index + 1}
                       </div>
                       <span className="font-medium text-foreground">{cidade}</span>
                     </div>
-                     <span className="text-sm font-semibold text-success">
+                     <span className="text-sm font-semibold text-secondary">
                        {quantidade as number} vendas
                      </span>
                   </div>

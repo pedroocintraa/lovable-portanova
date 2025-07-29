@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Venda } from "@/types/venda";
 import { 
@@ -13,7 +14,9 @@ import {
   Mail, 
   Calendar,
   Filter,
-  Eye
+  Eye,
+  User,
+  Users
 } from "lucide-react";
 import { StatusManager } from "@/components/StatusManager/StatusManager";
 
@@ -26,6 +29,8 @@ const AcompanhamentoVendas = () => {
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<Venda["status"] | "todas">("todas");
+  const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
+  const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -52,7 +57,7 @@ const AcompanhamentoVendas = () => {
   }, [toast]);
 
   /**
-   * Filtra vendas baseado no texto e status
+   * Filtra vendas baseado no texto, status, vendedor e equipe
    */
   const vendasFiltradas = useMemo(() => {
     return vendas.filter(venda => {
@@ -62,10 +67,27 @@ const AcompanhamentoVendas = () => {
         venda.cliente.endereco.localidade.toLowerCase().includes(filtroTexto.toLowerCase());
 
       const matchStatus = filtroStatus === "todas" || venda.status === filtroStatus;
+      
+      const matchVendedor = filtroVendedor === "todos" || 
+        (venda.vendedorNome && venda.vendedorNome.toLowerCase().includes(filtroVendedor.toLowerCase()));
+      
+      const matchEquipe = filtroEquipe === "todas" || 
+        (venda.equipeNome && venda.equipeNome.toLowerCase().includes(filtroEquipe.toLowerCase()));
 
-      return matchTexto && matchStatus;
+      return matchTexto && matchStatus && matchVendedor && matchEquipe;
     });
-  }, [vendas, filtroTexto, filtroStatus]);
+  }, [vendas, filtroTexto, filtroStatus, filtroVendedor, filtroEquipe]);
+
+  // Listas únicas para filtros
+  const vendedoresUnicos = useMemo(() => {
+    const vendedores = [...new Set(vendas.map(v => v.vendedorNome).filter(Boolean))];
+    return vendedores.sort();
+  }, [vendas]);
+
+  const equipesUnicas = useMemo(() => {
+    const equipes = [...new Set(vendas.map(v => v.equipeNome).filter(Boolean))];
+    return equipes.sort();
+  }, [vendas]);
 
   /**
    * Atualiza status de uma venda
@@ -172,7 +194,8 @@ const AcompanhamentoVendas = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="space-y-4">
+            {/* Busca por texto */}
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -184,6 +207,64 @@ const AcompanhamentoVendas = () => {
                 />
               </div>
             </div>
+            
+            {/* Filtros por selects */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Vendedor</label>
+                <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os vendedores" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os vendedores</SelectItem>
+                    {vendedoresUnicos.map((vendedor) => (
+                      <SelectItem key={vendedor} value={vendedor}>
+                        {vendedor}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Equipe</label>
+                <Select value={filtroEquipe} onValueChange={setFiltroEquipe}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as equipes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as equipes</SelectItem>
+                    {equipesUnicas.map((equipe) => (
+                      <SelectItem key={equipe} value={equipe}>
+                        {equipe}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Status</label>
+                <Select value={filtroStatus} onValueChange={(value: any) => setFiltroStatus(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todos os status</SelectItem>
+                    <SelectItem value="pendente">Pendentes</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    <SelectItem value="auditada">Auditadas</SelectItem>
+                    <SelectItem value="gerada">Geradas</SelectItem>
+                    <SelectItem value="aguardando_habilitacao">Aguardando Habilitação</SelectItem>
+                    <SelectItem value="habilitada">Habilitadas</SelectItem>
+                    <SelectItem value="perdida">Perdidas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Filtros rápidos por botões */}
             <div className="flex gap-2 flex-wrap">
               <Button
                 variant={filtroStatus === "todas" ? "default" : "outline"}
@@ -267,6 +348,26 @@ const AcompanhamentoVendas = () => {
                       </Badge>
                     </div>
                     
+                    {/* Vendedor e Equipe */}
+                    {(venda.vendedorNome || venda.equipeNome) && (
+                      <div className="flex flex-wrap gap-3 mb-2">
+                        {venda.vendedorNome && (
+                          <div className="flex items-center space-x-1">
+                            <User className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-primary">
+                              {venda.vendedorNome}
+                            </span>
+                          </div>
+                        )}
+                        {venda.equipeNome && (
+                          <Badge variant="outline" className="text-xs">
+                            <Users className="h-3 w-3 mr-1" />
+                            {venda.equipeNome}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Phone className="h-4 w-4" />
@@ -323,7 +424,7 @@ const AcompanhamentoVendas = () => {
                 Nenhuma venda encontrada
               </h3>
               <p className="text-muted-foreground">
-                {filtroTexto || filtroStatus !== "todas" 
+                {filtroTexto || filtroStatus !== "todas" || filtroVendedor !== "todos" || filtroEquipe !== "todas"
                   ? "Tente ajustar os filtros ou cadastrar uma nova venda"
                   : "Comece cadastrando sua primeira venda"}
               </p>

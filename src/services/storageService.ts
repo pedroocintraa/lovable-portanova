@@ -129,11 +129,49 @@ class StorageService {
     });
   }
 
+  // Buscar dados da equipe do usuário
+  private async buscarDadosEquipe(equipeId: string | null): Promise<{ equipeId?: string; equipeNome?: string }> {
+    if (!equipeId) return {};
+    
+    try {
+      const { equipesService } = await import("@/services/equipesService");
+      const equipe = await equipesService.obterEquipePorId(equipeId);
+      return {
+        equipeId: equipe?.id,
+        equipeNome: equipe?.nome
+      };
+    } catch (error) {
+      console.warn("Erro ao buscar dados da equipe:", error);
+      return { equipeId };
+    }
+  }
+
   // Salvar venda
   async salvarVenda(venda: Venda): Promise<void> {
     try {
+      // Enriquecer venda com dados da equipe se necessário
+      let vendaEnriquecida = { ...venda };
+      
+      if (venda.vendedorId && !venda.equipeId) {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const { data: usuario } = await supabase
+            .from('usuarios')
+            .select('equipe_id')
+            .eq('id', venda.vendedorId)
+            .maybeSingle();
+          
+          if (usuario?.equipe_id) {
+            const dadosEquipe = await this.buscarDadosEquipe(usuario.equipe_id);
+            vendaEnriquecida = { ...vendaEnriquecida, ...dadosEquipe };
+          }
+        } catch (error) {
+          console.warn("Erro ao buscar equipe do vendedor:", error);
+        }
+      }
+
       // Separar metadados dos documentos
-      const { documentos, ...metadata } = venda;
+      const { documentos, ...metadata } = vendaEnriquecida;
       const vendaMetadata: VendaMetadata = {
         ...metadata,
         hasDocuments: !!(documentos && Object.keys(documentos).length > 0)
@@ -146,7 +184,7 @@ class StorageService {
 
       // Salvar documentos no IndexedDB se existirem
       if (documentos && Object.keys(documentos).length > 0) {
-        await this.saveDocuments(venda.id, documentos);
+        await this.saveDocuments(vendaEnriquecida.id, documentos);
       }
     } catch (error) {
       console.error("Erro ao salvar venda:", error);
@@ -252,6 +290,20 @@ class StorageService {
       return acc;
     }, {} as Record<string, number>);
 
+    // Vendas por vendedor
+    const vendasPorVendedor = vendas.reduce((acc, venda) => {
+      const vendedor = venda.vendedorNome || 'Vendedor Desconhecido';
+      acc[vendedor] = (acc[vendedor] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Vendas por equipe
+    const vendasPorEquipe = vendas.reduce((acc, venda) => {
+      const equipe = venda.equipeNome || 'Sem Equipe';
+      acc[equipe] = (acc[equipe] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
     return {
       totalVendas,
       vendasPendentes,
@@ -263,6 +315,8 @@ class StorageService {
       vendasPerdidas,
       vendasPorBairro,
       vendasPorCidade,
+      vendasPorVendedor,
+      vendasPorEquipe,
       taxaConversao: totalVendas > 0 ? (vendasHabilitadas / totalVendas) * 100 : 0
     };
   }

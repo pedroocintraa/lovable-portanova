@@ -47,6 +47,8 @@ export interface Venda {
   observacoes?: string;
   vendedorId?: string; // ID do usuário que criou a venda
   vendedorNome?: string; // Nome do vendedor (para facilitar exibição)
+  equipeId?: string; // ID da equipe do vendedor
+  equipeNome?: string; // Nome da equipe (para facilitar exibição)
   planoId?: string; // ID do plano selecionado
   diaVencimento?: number; // Dia do vencimento (1-31)
   dataInstalacao?: string; // Data da instalação (ISO string)
