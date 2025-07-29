@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading, needsPasswordSetup } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const [localLoading, setLocalLoading] = React.useState(true);
 
   // Timeout de segurança local
@@ -40,10 +40,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (needsPasswordSetup) {
-    console.log('ProtectedRoute: Redirecionando para reset-password (setup necessário)');
-    return <Navigate to="/reset-password?type=invite" replace />;
-  }
 
   if (!isAuthenticated) {
     console.log('ProtectedRoute: Redirecionando para login');

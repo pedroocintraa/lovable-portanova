@@ -120,21 +120,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create user invitation using Supabase Auth admin API
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      userData.email,
-      {
-        data: {
-          nome: userData.nome.toUpperCase(),
-          funcao: userData.funcao,
-          needs_password_setup: true,
-          senha_temporaria: true,
-          isNewUser: true,
-          mustChangePassword: true
-        },
-        redirectTo: `${req.headers.get('origin') || 'https://lovable-portanova.lovable.app'}/reset-password?type=invite`
+    // Create user with standard password using Supabase Auth admin API
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: userData.email,
+      password: 'Trocar@123',
+      email_confirm: true,
+      user_metadata: {
+        nome: userData.nome.toUpperCase(),
+        funcao: userData.funcao,
+        isNewUser: true
       }
-    );
+    });
 
     if (authError) {
       console.error('Erro ao criar usuário no Auth:', authError);
@@ -185,8 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         user: dbUser,
-        invitationSent: true,
-        message: "Usuário criado com sucesso. Um email de confirmação foi enviado para que possa definir sua senha."
+        message: "Usuário criado com sucesso. Um email de boas-vindas será enviado com as credenciais de acesso."
       }),
       {
         status: 200,
