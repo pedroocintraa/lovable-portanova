@@ -127,6 +127,8 @@ const handler = async (req: Request): Promise<Response> => {
         data: {
           nome: userData.nome.toUpperCase(),
           funcao: userData.funcao,
+          needs_password_setup: true,
+          senha_temporaria: true,
           isNewUser: true,
           mustChangePassword: true
         },

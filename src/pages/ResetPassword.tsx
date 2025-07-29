@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
  */
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, needsPasswordSetup, user } = useAuth();
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -26,8 +26,8 @@ const ResetPassword = () => {
   const refreshToken = searchParams.get('refresh_token');
   const type = searchParams.get('type');
 
-  // Se já estiver autenticado mas não for um convite/recovery, redirecionar para dashboard
-  if (isAuthenticated && !['recovery', 'invite'].includes(type || '')) {
+  // Se já estiver completamente autenticado (não precisa de setup de senha), redirecionar para dashboard
+  if (isAuthenticated && !needsPasswordSetup && !['recovery', 'invite'].includes(type || '')) {
     return <Navigate to="/" replace />;
   }
 
@@ -40,7 +40,8 @@ const ResetPassword = () => {
   const finalAccessToken = accessToken || hashAccessToken;
   const finalRefreshToken = refreshToken || hashRefreshToken;
   
-  if (!finalAccessToken || !['recovery', 'invite'].includes(type || '')) {
+  // Se o usuário precisa definir senha mas não tem tokens válidos, mostrar erro
+  if (!needsPasswordSetup && !finalAccessToken && !['recovery', 'invite'].includes(type || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
@@ -89,34 +90,40 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      // Usar os tokens consolidados
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: finalAccessToken!,
-        refresh_token: finalRefreshToken || '',
-      });
-
-      if (sessionError) {
-        throw sessionError;
+      // Set session with tokens if available and not already authenticated
+      if (finalAccessToken && finalRefreshToken && !user) {
+        await supabase.auth.setSession({
+          access_token: finalAccessToken,
+          refresh_token: finalRefreshToken,
+        });
       }
 
-      // Atualizar a senha
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: novaSenha
+      const { error } = await supabase.auth.updateUser({
+        password: novaSenha,
+        data: {
+          senha_temporaria: null,
+          needs_password_setup: null
+        }
       });
 
-      if (updateError) {
-        throw updateError;
+      if (error) {
+        toast({
+          title: "Erro",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
       }
 
       toast({
-        title: "Senha atualizada",
-        description: "Sua senha foi alterada com sucesso!",
+        title: "Sucesso",
+        description: "Senha definida com sucesso!"
       });
 
-      // Redirecionar para login após 2 segundos
+      // Redirect to dashboard after successful password setup
       setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
+        window.location.href = '/';
+      }, 1500);
 
     } catch (error: any) {
       console.error('Erro ao redefinir senha:', error);

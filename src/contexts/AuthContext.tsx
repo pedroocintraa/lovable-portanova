@@ -13,6 +13,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   loading: boolean;
+  needsPasswordSetup: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -50,6 +52,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Verificar se usuário precisa definir senha (primeiro acesso)
+          const userMetadata = session.user.user_metadata || {};
+          const isFirstAccess = userMetadata.senha_temporaria || userMetadata.needs_password_setup;
+          
+          if (isFirstAccess) {
+            setNeedsPasswordSetup(true);
+            setLoading(false);
+            return;
+          }
+          
           // Usar setTimeout para diferir a chamada async e evitar loops
           setTimeout(async () => {
             if (!mounted) return;
@@ -62,12 +74,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 console.log('AuthContext: Usuário encontrado na integração:', userData.nome);
                 setUsuario(userData);
                 setPermissoes(usuariosService.obterPermissoes(userData.funcao));
+                setNeedsPasswordSetup(false);
               } else if (mounted) {
                 console.warn('AuthContext: Usuário auth existe mas não na tabela usuarios. Fazendo logout.');
                 // Se o usuário existe no auth mas não na nossa tabela, fazer logout
                 await supabase.auth.signOut();
                 setUsuario(null);
                 setPermissoes(null);
+                setNeedsPasswordSetup(false);
               }
             } catch (error) {
               console.error('AuthContext: Erro ao carregar dados do usuário integrado:', error);
@@ -76,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 await supabase.auth.signOut();
                 setUsuario(null);
                 setPermissoes(null);
+                setNeedsPasswordSetup(false);
               }
             } finally {
               if (mounted) {
@@ -86,6 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else {
           setUsuario(null);
           setPermissoes(null);
+          setNeedsPasswordSetup(false);
           setLoading(false);
         }
       }
@@ -208,7 +224,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
   };
 
-  const isAuthenticated = !!session?.user;
+  const isAuthenticated = !!session?.user && !needsPasswordSetup;
 
   return (
     <AuthContext.Provider value={{
@@ -219,7 +235,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       login,
       logout,
       isAuthenticated,
-      loading
+      loading,
+      needsPasswordSetup
     }}>
       {children}
     </AuthContext.Provider>
