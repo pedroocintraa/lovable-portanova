@@ -260,13 +260,52 @@ class StorageService {
     }
   }
 
-  // Obter todas as vendas (apenas metadados para listagem)
-  async obterVendas(): Promise<Venda[]> {
-    const vendas = this.obterVendasMetadata();
-    return vendas.map(v => {
-      const { hasDocuments, ...venda } = v;
-      return venda as Venda;
-    });
+  // Método para obter vendas com controle de acesso baseado no usuário
+  async obterVendas(usuarioAtual?: any): Promise<Venda[]> {
+    const metadados = this.obterVendasMetadata();
+    const vendas: Venda[] = [];
+
+    for (const metadata of metadados) {
+      try {
+        const vendaCompleta = await this.obterVendaCompleta(metadata.id);
+        if (vendaCompleta) {
+          vendas.push(vendaCompleta);
+        }
+      } catch (error) {
+        console.error(`Erro ao obter venda ${metadata.id}:`, error);
+      }
+    }
+
+    // Aplicar filtros de acesso baseado no papel do usuário
+    let vendasFiltradas = vendas;
+    
+    if (usuarioAtual) {
+      const { funcao, id: usuarioId, equipeId } = usuarioAtual;
+      
+      switch (funcao) {
+        case 'ADMINISTRADOR_GERAL':
+        case 'SUPERVISOR':
+          // Admin geral e supervisores veem todas as vendas
+          break;
+        
+        case 'SUPERVISOR_EQUIPE':
+          // Supervisor de equipe vê apenas vendas da sua equipe
+          vendasFiltradas = vendas.filter(venda => 
+            venda.equipeId === equipeId || venda.vendedorId === usuarioId
+          );
+          break;
+        
+        case 'VENDEDOR':
+        default:
+          // Vendedor vê apenas suas próprias vendas
+          vendasFiltradas = vendas.filter(venda => venda.vendedorId === usuarioId);
+          break;
+      }
+    }
+
+    return vendasFiltradas.sort((a, b) => 
+      new Date(b.dataVenda).getTime() - new Date(a.dataVenda).getTime()
+    );
   }
 
   // Atualizar status
@@ -336,8 +375,8 @@ class StorageService {
   }
 
   // Gerar estatísticas
-  obterEstatisticasVendas() {
-    const vendas = this.obterVendasMetadata();
+  async obterEstatisticasVendas(usuarioAtual?: any) {
+    const vendas = await this.obterVendas(usuarioAtual);
     
     const totalVendas = vendas.length;
     const vendasPendentes = vendas.filter(v => v.status === "pendente").length;

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { StatusManager } from "@/components/StatusManager/StatusManager";
  */
 const AcompanhamentoVendas = () => {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<Venda["status"] | "todas">("todas");
@@ -46,7 +48,7 @@ const AcompanhamentoVendas = () => {
           console.log(`✅ ${vendasAtualizadas} vendas foram atualizadas com dados de equipe`);
         }
         
-        const vendasCarregadas = await storageService.obterVendas();
+        const vendasCarregadas = await storageService.obterVendas(usuario);
         setVendas(vendasCarregadas);
       } catch (error) {
         console.error("Erro ao carregar vendas:", error);
@@ -60,8 +62,10 @@ const AcompanhamentoVendas = () => {
       }
     };
 
-    carregarVendas();
-  }, [toast]);
+    if (usuario) {
+      carregarVendas();
+    }
+  }, [toast, usuario]);
 
   /**
    * Filtra vendas baseado no texto, status, vendedor e equipe

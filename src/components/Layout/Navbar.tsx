@@ -2,11 +2,17 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   BarChart3, 
   Users, 
-  TrendingUp, 
   Menu, 
   X,
   UserCog,
@@ -14,7 +20,9 @@ import {
   Plus,
   Eye,
   Settings,
-  LogOut
+  LogOut,
+  Lock,
+  ChevronDown
 } from "lucide-react";
 
 /**
@@ -110,23 +118,34 @@ export const Navbar = () => {
             {/* Informações do usuário */}
             {usuario && (
               <div className="flex items-center space-x-3 border-l border-border pl-6">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">
-                    {usuario.nome}
-                  </p>
-                  <Badge variant="secondary" className="text-xs">
-                    {usuario.funcao.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                  </Badge>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-muted-foreground hover:text-foreground"
-                  title="Sair"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center space-x-2">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-foreground">
+                          {usuario.nome}
+                        </p>
+                        <Badge variant="secondary" className="text-xs">
+                          {usuario.funcao.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                        </Badge>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/change-password" className="flex items-center w-full">
+                        <Lock className="h-4 w-4 mr-2" />
+                        Alterar Senha
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             )}
           </div>

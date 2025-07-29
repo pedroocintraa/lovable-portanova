@@ -14,6 +14,8 @@ import GerenciamentoUsuarios from "./pages/GerenciamentoUsuarios";
 import GerenciamentoEquipes from "./pages/GerenciamentoEquipes";
 import Configuracoes from "./pages/Configuracoes";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,7 @@ const App = () => (
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <Navbar />
@@ -40,6 +43,7 @@ const App = () => (
                       <Route path="/usuarios" element={<GerenciamentoUsuarios />} />
                       <Route path="/equipes" element={<GerenciamentoEquipes />} />
                       <Route path="/configuracoes" element={<Configuracoes />} />
+                      <Route path="/change-password" element={<ChangePassword />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </main>

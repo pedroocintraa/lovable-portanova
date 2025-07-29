@@ -36,7 +36,7 @@ const Dashboard = () => {
         if (usuario?.funcao === "VENDEDOR") {
           stats = storageService.obterEstatisticasVendasPorVendedor(usuario.id);
         } else {
-          stats = storageService.obterEstatisticasVendas();
+          stats = await storageService.obterEstatisticasVendas(usuario);
         }
         setEstatisticas(stats);
       } catch (error) {

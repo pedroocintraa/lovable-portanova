@@ -127,8 +127,9 @@ const handler = async (req: Request): Promise<Response> => {
         data: {
           nome: userData.nome.toUpperCase(),
           funcao: userData.funcao,
+          isNewUser: true
         },
-        redirectTo: `${Deno.env.get("SUPABASE_URL")?.replace('/rest/v1', '')}/auth/v1/verify`
+        redirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/reset-password`
       }
     );
 
