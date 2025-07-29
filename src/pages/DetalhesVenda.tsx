@@ -4,17 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
-import { ArrowLeft, Download, Eye, FileText, User, MapPin, Calendar, Phone, Mail, CreditCard } from "lucide-react";
+import { ArrowLeft, Download, Eye, FileText, User, MapPin, Calendar, Phone, Mail, CreditCard, AlertTriangle } from "lucide-react";
 import { Venda, DocumentoAnexado } from "@/types/venda";
 import { storageService } from "@/services/storageService";
 import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
+import { StatusManager } from "@/components/StatusManager/StatusManager";
+import { useToast } from "@/hooks/use-toast";
 
 const DetalhesVenda = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [venda, setVenda] = useState<Venda | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!id) {
@@ -28,12 +30,20 @@ const DetalhesVenda = () => {
         if (vendaCompleta) {
           setVenda(vendaCompleta);
         } else {
-          toast.error("Venda não encontrada");
+          toast({
+            title: "Erro",
+            description: "Venda não encontrada",
+            variant: "destructive",
+          });
           navigate("/acompanhamento");
         }
       } catch (error) {
         console.error("Erro ao carregar venda:", error);
-        toast.error("Erro ao carregar dados da venda");
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados da venda",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -44,9 +54,12 @@ const DetalhesVenda = () => {
 
   const getStatusLabel = (status: Venda["status"]) => {
     const labels = {
-      gerada: "Gerada",
+      pendente: "Pendente",
       em_andamento: "Em Andamento",
-      aprovada: "Aprovada",
+      auditada: "Auditada",
+      gerada: "Gerada",
+      aguardando_habilitacao: "Aguardando Habilitação",
+      habilitada: "Habilitada",
       perdida: "Perdida"
     };
     return labels[status];
@@ -54,9 +67,12 @@ const DetalhesVenda = () => {
 
   const getStatusVariant = (status: Venda["status"]) => {
     const variants = {
-      gerada: "secondary",
+      pendente: "outline",
       em_andamento: "default",
-      aprovada: "default",
+      auditada: "secondary",
+      gerada: "default",
+      aguardando_habilitacao: "default",
+      habilitada: "default",
       perdida: "destructive"
     } as const;
     return variants[status];
@@ -66,9 +82,40 @@ const DetalhesVenda = () => {
     return new Date(dataISO).toLocaleString("pt-BR");
   };
 
+  // Função para atualizar status da venda
+  const handleStatusChange = async (
+    novoStatus: Venda["status"],
+    extraData?: { dataInstalacao?: string; motivoPerda?: string }
+  ) => {
+    if (!venda) return;
+    
+    try {
+      await storageService.atualizarStatusVenda(venda.id, novoStatus, extraData);
+      const vendaAtualizada = await storageService.obterVendaCompleta(venda.id);
+      if (vendaAtualizada) {
+        setVenda(vendaAtualizada);
+        toast({
+          title: "Status atualizado",
+          description: `Venda marcada como ${getStatusLabel(novoStatus).toLowerCase()}.`,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status da venda.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const baixarTodosDocumentos = async () => {
     if (!venda?.documentos) {
-      toast.error("Nenhum documento disponível para download");
+      toast({
+        title: "Erro",
+        description: "Nenhum documento disponível para download",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -98,7 +145,11 @@ const DetalhesVenda = () => {
       });
 
       if (!temDocumentos) {
-        toast.error("Nenhum documento encontrado para download");
+        toast({
+          title: "Erro",
+          description: "Nenhum documento encontrado para download",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -113,10 +164,17 @@ const DetalhesVenda = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success("Download de todos os documentos iniciado!");
+      toast({
+        title: "Sucesso",
+        description: "Download de todos os documentos iniciado!",
+      });
     } catch (error) {
       console.error("Erro ao baixar documentos:", error);
-      toast.error("Erro ao gerar arquivo ZIP");
+      toast({
+        title: "Erro",
+        description: "Erro ao gerar arquivo ZIP",
+        variant: "destructive",
+      });
     }
   };
 
@@ -144,7 +202,10 @@ const DetalhesVenda = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast.success("Dados da venda exportados!");
+    toast({
+      title: "Sucesso",
+      description: "Dados da venda exportados!",
+    });
   };
 
   const contarDocumentos = () => {
@@ -349,15 +410,22 @@ const DetalhesVenda = () => {
             <CardHeader>
               <CardTitle>Ações do Backoffice</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Button 
-                onClick={exportarDadosVenda}
-                variant="outline" 
-                className="w-full"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Dados da Venda
-              </Button>
+            <CardContent className="space-y-4">
+              <StatusManager
+                venda={venda}
+                onStatusChange={handleStatusChange}
+              />
+              
+              <div className="flex flex-col gap-2 pt-4 border-t">
+                <Button 
+                  onClick={exportarDadosVenda}
+                  variant="outline" 
+                  className="w-full"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Dados da Venda
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -385,6 +453,28 @@ const DetalhesVenda = () => {
                   </Badge>
                 </div>
               </div>
+              
+              {/* Data de Instalação */}
+              {venda.dataInstalacao && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Data de Instalação</label>
+                    <p className="font-medium">{new Date(venda.dataInstalacao).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Motivo da Perda */}
+              {venda.motivoPerda && (
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Motivo da Perda</label>
+                    <p className="text-sm text-muted-foreground mt-1">{venda.motivoPerda}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -59,9 +59,12 @@ export const obterEstatisticasVendas = () => {
   const vendas = obterVendas();
   
   const totalVendas = vendas.length;
-  const vendasGeradas = vendas.filter(v => v.status === "gerada").length;
+  const vendasPendentes = vendas.filter(v => v.status === "pendente").length;
   const vendasEmAndamento = vendas.filter(v => v.status === "em_andamento").length;
-  const vendasAprovadas = vendas.filter(v => v.status === "aprovada").length;
+  const vendasAuditadas = vendas.filter(v => v.status === "auditada").length;
+  const vendasGeradas = vendas.filter(v => v.status === "gerada").length;
+  const vendasAguardandoHabilitacao = vendas.filter(v => v.status === "aguardando_habilitacao").length;
+  const vendasHabilitadas = vendas.filter(v => v.status === "habilitada").length;
   const vendasPerdidas = vendas.filter(v => v.status === "perdida").length;
 
   // Vendas por bairro
@@ -80,12 +83,15 @@ export const obterEstatisticasVendas = () => {
 
   return {
     totalVendas,
-    vendasGeradas,
+    vendasPendentes,
     vendasEmAndamento,
-    vendasAprovadas,
+    vendasAuditadas,
+    vendasGeradas,
+    vendasAguardandoHabilitacao,
+    vendasHabilitadas,
     vendasPerdidas,
     vendasPorBairro,
     vendasPorCidade,
-    taxaConversao: totalVendas > 0 ? (vendasAprovadas / totalVendas) * 100 : 0
+    taxaConversao: totalVendas > 0 ? (vendasHabilitadas / totalVendas) * 100 : 0
   };
 };

@@ -42,13 +42,15 @@ export interface Venda {
   id: string;
   cliente: Cliente;
   documentos?: DocumentosVenda;
-  status: "gerada" | "em_andamento" | "aprovada" | "perdida";
+  status: "pendente" | "em_andamento" | "auditada" | "gerada" | "aguardando_habilitacao" | "habilitada" | "perdida";
   dataVenda: string;
   observacoes?: string;
   vendedorId?: string; // ID do usuário que criou a venda
   vendedorNome?: string; // Nome do vendedor (para facilitar exibição)
   planoId?: string; // ID do plano selecionado
   diaVencimento?: number; // Dia do vencimento (1-31)
+  dataInstalacao?: string; // Data da instalação (ISO string)
+  motivoPerda?: string; // Motivo quando marcada como perdida
 }
 
 export interface VendaFormData extends Omit<Venda, "id" | "dataVenda" | "status"> {

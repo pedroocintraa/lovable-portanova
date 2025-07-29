@@ -200,13 +200,23 @@ class StorageService {
   }
 
   // Atualizar status
-  async atualizarStatusVenda(id: string, novoStatus: Venda["status"]): Promise<void> {
+  async atualizarStatusVenda(
+    id: string, 
+    novoStatus: Venda["status"],
+    extraData?: { dataInstalacao?: string; motivoPerda?: string }
+  ): Promise<void> {
     try {
       const vendas = this.obterVendasMetadata();
       const vendaIndex = vendas.findIndex(v => v.id === id);
       
       if (vendaIndex !== -1) {
         vendas[vendaIndex].status = novoStatus;
+        if (extraData?.dataInstalacao) {
+          (vendas[vendaIndex] as any).dataInstalacao = extraData.dataInstalacao;
+        }
+        if (extraData?.motivoPerda) {
+          (vendas[vendaIndex] as any).motivoPerda = extraData.motivoPerda;
+        }
         localStorage.setItem(VENDAS_KEY, JSON.stringify(vendas));
       }
     } catch (error) {
@@ -220,9 +230,12 @@ class StorageService {
     const vendas = this.obterVendasMetadata();
     
     const totalVendas = vendas.length;
-    const vendasGeradas = vendas.filter(v => v.status === "gerada").length;
+    const vendasPendentes = vendas.filter(v => v.status === "pendente").length;
     const vendasEmAndamento = vendas.filter(v => v.status === "em_andamento").length;
-    const vendasAprovadas = vendas.filter(v => v.status === "aprovada").length;
+    const vendasAuditadas = vendas.filter(v => v.status === "auditada").length;
+    const vendasGeradas = vendas.filter(v => v.status === "gerada").length;
+    const vendasAguardandoHabilitacao = vendas.filter(v => v.status === "aguardando_habilitacao").length;
+    const vendasHabilitadas = vendas.filter(v => v.status === "habilitada").length;
     const vendasPerdidas = vendas.filter(v => v.status === "perdida").length;
 
     // Vendas por bairro
@@ -241,13 +254,16 @@ class StorageService {
 
     return {
       totalVendas,
-      vendasGeradas,
+      vendasPendentes,
       vendasEmAndamento,
-      vendasAprovadas,
+      vendasAuditadas,
+      vendasGeradas,
+      vendasAguardandoHabilitacao,
+      vendasHabilitadas,
       vendasPerdidas,
       vendasPorBairro,
       vendasPorCidade,
-      taxaConversao: totalVendas > 0 ? (vendasAprovadas / totalVendas) * 100 : 0
+      taxaConversao: totalVendas > 0 ? (vendasHabilitadas / totalVendas) * 100 : 0
     };
   }
 

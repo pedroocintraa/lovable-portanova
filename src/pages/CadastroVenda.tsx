@@ -129,21 +129,14 @@ const CadastroVenda = () => {
       return;
     }
 
-    if (!documentos.selfieCliente || documentos.selfieCliente.length === 0) {
-      toast({
-        title: "Erro",
-        description: "A selfie do cliente é obrigatória",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Selfie não é mais obrigatória
 
     try {
       const novaVenda: Venda = {
         id: `venda_${Date.now()}`,
         cliente: data.cliente,
         documentos: documentos,
-        status: "gerada",
+        status: "pendente",
         dataVenda: new Date().toISOString(),
         observacoes: data.observacoes,
         vendedorId: usuario?.id,
@@ -449,8 +442,8 @@ const CadastroVenda = () => {
           </div>
 
           {/* Selfie do Cliente */}
-          <CameraUpload
-            titulo="Selfie do Cliente *"
+          <DocumentUpload
+            titulo="Selfie do Cliente"
             documentos={documentos.selfieCliente || []}
             onDocumentosChange={(docs) => handleDocumentosChange('selfieCliente', docs)}
           />

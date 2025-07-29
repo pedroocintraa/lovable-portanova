@@ -13,10 +13,9 @@ import {
   Mail, 
   Calendar,
   Filter,
-  Eye,
-  Edit
+  Eye
 } from "lucide-react";
-import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
+import { StatusManager } from "@/components/StatusManager/StatusManager";
 
 /**
  * Página de acompanhamento de vendas
@@ -71,14 +70,23 @@ const AcompanhamentoVendas = () => {
   /**
    * Atualiza status de uma venda
    */
-  const handleAtualizarStatus = async (id: string, novoStatus: Venda["status"]) => {
+  const handleAtualizarStatus = async (
+    id: string, 
+    novoStatus: Venda["status"],
+    extraData?: { dataInstalacao?: string; motivoPerda?: string }
+  ) => {
     try {
       const { storageService } = await import("@/services/storageService");
-      await storageService.atualizarStatusVenda(id, novoStatus);
+      await storageService.atualizarStatusVenda(id, novoStatus, extraData);
       
       // Atualizar estado local
       setVendas(vendas.map(venda => 
-        venda.id === id ? { ...venda, status: novoStatus } : venda
+        venda.id === id ? { 
+          ...venda, 
+          status: novoStatus,
+          ...(extraData?.dataInstalacao && { dataInstalacao: extraData.dataInstalacao }),
+          ...(extraData?.motivoPerda && { motivoPerda: extraData.motivoPerda })
+        } : venda
       ));
 
       toast({
@@ -100,9 +108,12 @@ const AcompanhamentoVendas = () => {
    */
   const getStatusLabel = (status: Venda["status"]) => {
     const labels = {
-      gerada: "Gerada",
+      pendente: "Pendente",
       em_andamento: "Em Andamento",
-      aprovada: "Aprovada",
+      auditada: "Auditada",
+      gerada: "Gerada",
+      aguardando_habilitacao: "Aguardando Habilitação",
+      habilitada: "Habilitada",
       perdida: "Perdida"
     };
     return labels[status];
@@ -113,9 +124,12 @@ const AcompanhamentoVendas = () => {
    */
   const getStatusVariant = (status: Venda["status"]) => {
     switch (status) {
-      case "gerada": return "secondary";
+      case "pendente": return "outline";
       case "em_andamento": return "default";
-      case "aprovada": return "default"; // Will use success color via custom CSS
+      case "auditada": return "secondary";
+      case "gerada": return "default";
+      case "aguardando_habilitacao": return "default";
+      case "habilitada": return "default"; 
       case "perdida": return "destructive";
       default: return "secondary";
     }
@@ -170,7 +184,7 @@ const AcompanhamentoVendas = () => {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant={filtroStatus === "todas" ? "default" : "outline"}
                 onClick={() => setFiltroStatus("todas")}
@@ -179,11 +193,11 @@ const AcompanhamentoVendas = () => {
                 Todas
               </Button>
               <Button
-                variant={filtroStatus === "gerada" ? "default" : "outline"}
-                onClick={() => setFiltroStatus("gerada")}
+                variant={filtroStatus === "pendente" ? "default" : "outline"}
+                onClick={() => setFiltroStatus("pendente")}
                 size="sm"
               >
-                Geradas
+                Pendentes
               </Button>
               <Button
                 variant={filtroStatus === "em_andamento" ? "default" : "outline"}
@@ -193,11 +207,32 @@ const AcompanhamentoVendas = () => {
                 Em Andamento
               </Button>
               <Button
-                variant={filtroStatus === "aprovada" ? "default" : "outline"}
-                onClick={() => setFiltroStatus("aprovada")}
+                variant={filtroStatus === "auditada" ? "default" : "outline"}
+                onClick={() => setFiltroStatus("auditada")}
                 size="sm"
               >
-                Aprovadas
+                Auditadas
+              </Button>
+              <Button
+                variant={filtroStatus === "gerada" ? "default" : "outline"}
+                onClick={() => setFiltroStatus("gerada")}
+                size="sm"
+              >
+                Geradas
+              </Button>
+              <Button
+                variant={filtroStatus === "aguardando_habilitacao" ? "default" : "outline"}
+                onClick={() => setFiltroStatus("aguardando_habilitacao")}
+                size="sm"
+              >
+                Aguardando Habilitação
+              </Button>
+              <Button
+                variant={filtroStatus === "habilitada" ? "default" : "outline"}
+                onClick={() => setFiltroStatus("habilitada")}
+                size="sm"
+              >
+                Habilitadas
               </Button>
               <Button
                 variant={filtroStatus === "perdida" ? "default" : "outline"}
@@ -224,9 +259,9 @@ const AcompanhamentoVendas = () => {
                       <h3 className="text-lg font-semibold text-foreground">
                         {venda.cliente.nome}
                       </h3>
-                      <Badge 
+                       <Badge 
                         variant={getStatusVariant(venda.status)}
-                        className={venda.status === "aprovada" ? "bg-success text-success-foreground" : ""}
+                        className={venda.status === "habilitada" ? "bg-success text-success-foreground" : ""}
                       >
                         {getStatusLabel(venda.status)}
                       </Badge>
@@ -267,47 +302,12 @@ const AcompanhamentoVendas = () => {
                       Ver Detalhes
                     </Button>
                     
-                    <div className="flex flex-wrap gap-2">
-                      {venda.status === "gerada" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
-                        >
-                          Iniciar Processo
-                        </Button>
-                      )}
-                      
-                      {venda.status === "em_andamento" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-success text-success hover:bg-success hover:text-success-foreground"
-                            onClick={() => handleAtualizarStatus(venda.id, "aprovada")}
-                          >
-                            Aprovar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleAtualizarStatus(venda.id, "perdida")}
-                          >
-                            Marcar como Perdida
-                          </Button>
-                        </>
-                      )}
-
-                      {(venda.status === "aprovada" || venda.status === "perdida") && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAtualizarStatus(venda.id, "em_andamento")}
-                        >
-                          Reprocessar
-                        </Button>
-                      )}
-                    </div>
+                     <StatusManager
+                      venda={venda}
+                      onStatusChange={(newStatus, extraData) => 
+                        handleAtualizarStatus(venda.id, newStatus, extraData)
+                      }
+                    />
                   </div>
                 </div>
               </CardContent>
