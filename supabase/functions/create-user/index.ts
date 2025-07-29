@@ -120,18 +120,23 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create user invitation using Supabase Auth native email
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      userData.email,
-      {
+    // Generate temporary password for new user
+    const tempPassword = `Temp${Math.random().toString(36).slice(-8)}@123`;
+    
+    // Create user with signup and email confirmation
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.signUp({
+      email: userData.email,
+      password: tempPassword,
+      options: {
         data: {
           nome: userData.nome.toUpperCase(),
           funcao: userData.funcao,
-          isNewUser: true
+          isNewUser: true,
+          mustChangePassword: true
         },
-        redirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/reset-password`
+        emailRedirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/reset-password?type=invite`
       }
-    );
+    });
 
     if (authError) {
       console.error('Erro ao criar usuário no Auth:', authError);
@@ -182,7 +187,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         user: dbUser,
-        invitationSent: true 
+        invitationSent: true,
+        message: "Usuário criado com sucesso. Um email de confirmação foi enviado para que possa definir sua senha."
       }),
       {
         status: 200,
