@@ -120,20 +120,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate temporary password
-    const tempPassword = `temp${Math.random().toString(36).slice(-8)}@${Date.now().toString().slice(-4)}`;
-
-    // Create user in Supabase Auth using admin client
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: userData.email,
-      password: tempPassword,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        nome: userData.nome.toUpperCase(),
-        funcao: userData.funcao,
-        senha_temporaria: tempPassword, // Include temporary password for email
-      },
-    });
+    // Create user invitation using Supabase Auth native email
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      userData.email,
+      {
+        data: {
+          nome: userData.nome.toUpperCase(),
+          funcao: userData.funcao,
+        },
+        redirectTo: `${Deno.env.get("SUPABASE_URL")?.replace('/rest/v1', '')}/auth/v1/verify`
+      }
+    );
 
     if (authError) {
       console.error('Erro ao criar usuário no Auth:', authError);
@@ -184,7 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         user: dbUser,
-        tempPassword: tempPassword 
+        invitationSent: true 
       }),
       {
         status: 200,
