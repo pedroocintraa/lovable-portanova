@@ -130,7 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
           isNewUser: true,
           mustChangePassword: true
         },
-        redirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/reset-password?type=invite`
+        redirectTo: `${req.headers.get('origin') || 'https://lovable-portanova.lovable.app'}/reset-password?type=invite`
       }
     );
 

@@ -26,18 +26,21 @@ const ResetPassword = () => {
     return <Navigate to="/" replace />;
   }
 
-  // Verificar se há tokens de reset na URL
+  // Parse URL parameters to check for access token and type
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const type = searchParams.get('type');
 
-  // Para convites, verificar tokens no hash também
+  // Para convites, verificar tokens no hash (formato padrão do Supabase)
   const hashParams = new URLSearchParams(window.location.hash.substring(1));
   const hashAccessToken = hashParams.get('access_token');
+  const hashRefreshToken = hashParams.get('refresh_token');
   
-  const hasValidTokens = accessToken || (type === 'invite' && hashAccessToken);
+  // Determinar quais tokens usar
+  const finalAccessToken = accessToken || hashAccessToken;
+  const finalRefreshToken = refreshToken || hashRefreshToken;
   
-  if (!hasValidTokens || !['recovery', 'invite'].includes(type || '')) {
+  if (!finalAccessToken || !['recovery', 'invite'].includes(type || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
@@ -86,44 +89,14 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      // Para convites, o token já está na URL como hash fragments
-      if (type === 'invite') {
-        // O inviteUserByEmail coloca os tokens como hash fragments
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const hashAccessToken = hashParams.get('access_token');
-        const hashRefreshToken = hashParams.get('refresh_token');
-        
-        if (hashAccessToken) {
-          // Usar tokens do hash para convites
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: hashAccessToken,
-            refresh_token: hashRefreshToken || '',
-          });
+      // Usar os tokens consolidados
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: finalAccessToken!,
+        refresh_token: finalRefreshToken || '',
+      });
 
-          if (sessionError) {
-            throw sessionError;
-          }
-        } else {
-          // Fallback para tokens da URL query
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-
-          if (sessionError) {
-            throw sessionError;
-          }
-        }
-      } else {
-        // Para recovery (reset de senha), usar os tokens da URL query
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        });
-
-        if (sessionError) {
-          throw sessionError;
-        }
+      if (sessionError) {
+        throw sessionError;
       }
 
       // Atualizar a senha
