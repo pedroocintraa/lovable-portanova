@@ -10,6 +10,7 @@ import { usuariosService } from "@/services/usuariosService";
 import { equipesService } from "@/services/equipesService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { sanitizeFormData, isInputSafe } from "@/utils/inputSanitizer";
 
 interface UserFormProps {
   usuario?: Usuario;
@@ -107,15 +108,30 @@ export function UserForm({ usuario, onSubmit, onCancel }: UserFormProps) {
     e.preventDefault();
     
     try {
+      // Validate input safety before processing
+      for (const [field, value] of Object.entries(formData)) {
+        if (typeof value === 'string') {
+          const safety = isInputSafe(value);
+          if (!safety.safe) {
+            setErrors(prev => ({ ...prev, [field]: safety.reason || 'Entrada contém caracteres inválidos' }));
+            toast.error(`Erro no campo ${field}: ${safety.reason}`);
+            return;
+          }
+        }
+      }
+      
       if (await validateForm()) {
+        // Sanitize form data before submission
+        const sanitizedData = sanitizeFormData(formData);
+        
         const userData: UsuarioFormData = {
-          nome: formData.nome.toUpperCase(), // Garantir que o nome seja em maiúsculas
-          telefone: usuariosService.formatarTelefone(formData.telefone),
-          email: formData.email.toLowerCase(), // Garantir email em minúsculas
-          cpf: usuariosService.formatarCpf(formData.cpf),
-          funcao: formData.funcao,
-          equipeId: formData.equipeId || undefined,
-          supervisorEquipeId: formData.supervisorEquipeId || undefined
+          nome: sanitizedData.nome.toUpperCase(), // Garantir que o nome seja em maiúsculas
+          telefone: usuariosService.formatarTelefone(sanitizedData.telefone),
+          email: sanitizedData.email.toLowerCase(), // Garantir email em minúsculas
+          cpf: usuariosService.formatarCpf(sanitizedData.cpf),
+          funcao: sanitizedData.funcao,
+          equipeId: sanitizedData.equipeId || undefined,
+          supervisorEquipeId: sanitizedData.supervisorEquipeId || undefined
         };
         
         onSubmit(userData);

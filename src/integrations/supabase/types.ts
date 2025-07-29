@@ -207,6 +207,30 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string | null
+          email: string
+          id: string
+          ip_address: unknown
+          success: boolean | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          email: string
+          id?: string
+          ip_address: unknown
+          success?: boolean | null
+        }
+        Update: {
+          attempted_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: unknown
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       planos: {
         Row: {
           ativo: boolean
@@ -417,6 +441,10 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      check_rate_limit: {
+        Args: { p_ip: unknown; p_email: string }
+        Returns: boolean
+      }
       get_equipe_usuario_atual: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -495,6 +523,10 @@ export type Database = {
       is_admin_or_supervisor: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_login_attempt: {
+        Args: { p_ip: unknown; p_email: string; p_success: boolean }
+        Returns: undefined
       }
       log_security_event: {
         Args: {

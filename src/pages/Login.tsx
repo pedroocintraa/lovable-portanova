@@ -33,11 +33,19 @@ export default function Login() {
       const { error } = await login(email, password);
       
       if (error) {
-        setError('Email ou senha incorretos');
-      } else {
-        // O redirecionamento será tratado pelo useEffect acima
+        // Provide more specific error messages
+        if (error.message?.includes('tentativas')) {
+          setError(error.message);
+        } else if (error.message?.includes('caracteres não permitidos')) {
+          setError('Dados inválidos detectados');
+        } else if (error.message?.includes('Email inválido')) {
+          setError('Formato de email inválido');
+        } else {
+          setError('Email ou senha incorretos');
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Login error:', err);
       setError('Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);

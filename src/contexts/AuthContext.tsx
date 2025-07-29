@@ -125,11 +125,79 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    return { error };
+    // Simple input validation and sanitization
+    const validateInput = (email: string, password: string): string[] => {
+      const errors: string[] = [];
+      if (!email.trim()) errors.push('Email é obrigatório');
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Email inválido');
+      if (!password) errors.push('Senha é obrigatória');
+      else if (password.length < 6) errors.push('Senha deve ter pelo menos 6 caracteres');
+      return errors;
+    };
+
+    const sanitizeInput = (input: string): string => {
+      return input.trim().replace(/[<>]/g, '').substring(0, 255);
+    };
+
+    // Input validation
+    const validationErrors = validateInput(email, password);
+    if (validationErrors.length > 0) {
+      return { error: { message: validationErrors[0] } };
+    }
+    
+    // Sanitize inputs
+    const sanitizedEmail = sanitizeInput(email).toLowerCase();
+    const sanitizedPassword = sanitizeInput(password);
+    
+    // Server-side rate limiting check
+    try {
+      const { data: isAllowed } = await supabase.rpc('check_rate_limit', {
+        p_ip: '0.0.0.0',
+        p_email: sanitizedEmail
+      });
+      
+      if (!isAllowed) {
+        await supabase.rpc('log_login_attempt', {
+          p_ip: '0.0.0.0',
+          p_email: sanitizedEmail,
+          p_success: false
+        });
+        return { error: { message: 'Muitas tentativas de login. Tente novamente em 1 hora.' } };
+      }
+    } catch (rateLimitError) {
+      console.warn('Rate limit check failed:', rateLimitError);
+    }
+    
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: sanitizedEmail,
+        password: sanitizedPassword
+      });
+      
+      // Log the attempt
+      try {
+        await supabase.rpc('log_login_attempt', {
+          p_ip: '0.0.0.0',
+          p_email: sanitizedEmail,
+          p_success: !error
+        });
+      } catch (logError) {
+        console.warn('Failed to log login attempt:', logError);
+      }
+      
+      return { error };
+    } catch (err: any) {
+      try {
+        await supabase.rpc('log_login_attempt', {
+          p_ip: '0.0.0.0',
+          p_email: sanitizedEmail,
+          p_success: false
+        });
+      } catch (logError) {
+        console.warn('Failed to log login attempt:', logError);
+      }
+      return { error: err };
+    }
   };
 
   const logout = async () => {
