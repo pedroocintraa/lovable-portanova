@@ -9,6 +9,7 @@ import { Venda, DocumentoAnexado } from "@/types/venda";
 import { storageService } from "@/services/storageService";
 import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
 import { StatusManager } from "@/components/StatusManager/StatusManager";
+import { StatusSelector } from "@/components/StatusSelector/StatusSelector";
 import { useToast } from "@/hooks/use-toast";
 
 const DetalhesVenda = () => {

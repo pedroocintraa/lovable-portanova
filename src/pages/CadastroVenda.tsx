@@ -129,16 +129,31 @@ const CadastroVenda = () => {
       return;
     }
 
-    // Selfie não é mais obrigatória
+    // Converter dados para caixa alta
+    const dadosProcessados = {
+      ...data,
+      cliente: {
+        ...data.cliente,
+        nome: data.cliente.nome.toUpperCase(),
+        endereco: {
+          ...data.cliente.endereco,
+          logradouro: data.cliente.endereco.logradouro.toUpperCase(),
+          bairro: data.cliente.endereco.bairro.toUpperCase(),
+          localidade: data.cliente.endereco.localidade.toUpperCase(),
+          complemento: data.cliente.endereco.complemento ? data.cliente.endereco.complemento.toUpperCase() : ""
+        }
+      },
+      observacoes: data.observacoes ? data.observacoes.toUpperCase() : undefined
+    };
 
     try {
       const novaVenda: Venda = {
         id: `venda_${Date.now()}`,
-        cliente: data.cliente,
+        cliente: dadosProcessados.cliente,
         documentos: documentos,
         status: "pendente",
         dataVenda: new Date().toISOString(),
-        observacoes: data.observacoes,
+        observacoes: dadosProcessados.observacoes,
         vendedorId: usuario?.id,
         vendedorNome: usuario?.nome,
         planoId: planoSelecionado,

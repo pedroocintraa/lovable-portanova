@@ -67,7 +67,9 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
 
   const handleInstallConfirm = () => {
     if (dataInstalacao) {
-      onStatusChange("aguardando_habilitacao", { dataInstalacao });
+      // Usar formato UTC para evitar problemas de timezone
+      const dateUTC = new Date(dataInstalacao + 'T00:00:00.000Z').toISOString().split('T')[0];
+      onStatusChange("aguardando_habilitacao", { dataInstalacao: dateUTC });
       setShowInstallDialog(false);
       setDataInstalacao("");
     }
