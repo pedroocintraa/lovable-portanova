@@ -346,54 +346,25 @@ class UsuariosService {
 
   async excluirUsuarioPermanentemente(id: string): Promise<boolean> {
     try {
-      // Usar método específico que não filtra por status ativo
-      const usuario = await this.obterUsuarioParaExclusao(id);
-      if (!usuario) {
-        throw new Error("Usuário não encontrado");
+      console.log(`🗑️ Iniciando exclusão permanente via Edge Function para usuário: ${id}`);
+
+      // Chamar a Edge Function para exclusão permanente
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: id }
+      });
+
+      if (error) {
+        console.error('❌ Erro na Edge Function delete-user:', error);
+        throw new Error(error.message || 'Erro ao excluir usuário permanentemente');
       }
 
-      console.log(`🗑️ Iniciando exclusão permanente de: ${usuario.nome} (${usuario.email}) - Status ativo: ${usuario.ativo}`);
-
-      // 1. Verificar se é o último administrador geral ATIVO
-      if (usuario.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL) {
-        const { data: admins } = await supabase
-          .from('usuarios')
-          .select('id')
-          .eq('funcao', FuncaoUsuario.ADMINISTRADOR_GERAL)
-          .eq('ativo', true);
-
-        if (admins && admins.length <= 1) {
-          throw new Error('Não é possível excluir o último administrador geral ativo do sistema');
-        }
+      if (!data?.success) {
+        const errorMessage = data?.error || 'Falha desconhecida na exclusão';
+        console.error('❌ Edge Function retornou erro:', errorMessage);
+        throw new Error(errorMessage);
       }
 
-      // 2. Verificar se o usuário existe no Auth
-      const consistencia = await this.verificarConsistenciaUsuario(id);
-      
-      // 3. Excluir do auth.users apenas se existir
-      if (consistencia.existeNoAuth) {
-        const { error: authError } = await supabase.auth.admin.deleteUser(id);
-        if (authError) {
-          console.error('Erro ao excluir do Supabase Auth:', authError);
-          throw new Error('Erro ao excluir usuário do sistema de autenticação');
-        }
-        console.log(`✅ Usuário ${usuario.nome} excluído do Supabase Auth`);
-      } else {
-        console.log(`⚠️ Usuário ${usuario.nome} não existe no Supabase Auth (usuário órfão)`);
-      }
-
-      // 4. Excluir da tabela usuarios
-      const { error: dbError } = await supabase
-        .from('usuarios')
-        .delete()
-        .eq('id', id);
-
-      if (dbError) {
-        console.error('Erro ao excluir da tabela usuarios:', dbError);
-        throw new Error('Erro ao excluir usuário do banco de dados');
-      }
-
-      console.log(`🎉 Usuário ${usuario.nome} excluído permanentemente com sucesso`);
+      console.log(`🎉 Usuário excluído permanentemente com sucesso:`, data);
       return true;
     } catch (error) {
       console.error('❌ Erro ao excluir usuário permanentemente:', error);
