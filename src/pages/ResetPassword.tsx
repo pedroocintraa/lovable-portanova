@@ -21,15 +21,15 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Se já estiver autenticado, redirecionar para dashboard
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
   // Parse URL parameters to check for access token and type
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const type = searchParams.get('type');
+
+  // Se já estiver autenticado mas não for um convite/recovery, redirecionar para dashboard
+  if (isAuthenticated && !['recovery', 'invite'].includes(type || '')) {
+    return <Navigate to="/" replace />;
+  }
 
   // Para convites, verificar tokens no hash (formato padrão do Supabase)
   const hashParams = new URLSearchParams(window.location.hash.substring(1));
