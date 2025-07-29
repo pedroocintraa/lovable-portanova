@@ -168,6 +168,7 @@ const CadastroVenda = () => {
         documentos: documentos,
         status: "pendente",
         dataVenda: new Date().toISOString(),
+        dataGeracao: new Date().toISOString(),
         observacoes: dadosProcessados.observacoes,
         vendedorId: usuario?.id,
         vendedorNome: usuario?.nome,
@@ -421,10 +422,10 @@ const CadastroVenda = () => {
                   <Label htmlFor="diaVencimento">Dia de Vencimento *</Label>
                   <Select value={diaVencimento} onValueChange={setDiaVencimento}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o dia (1-31)" />
+                      <SelectValue placeholder="Selecione o dia (1-25)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
+                      {Array.from({ length: 25 }, (_, i) => i + 1).map((dia) => (
                         <SelectItem key={dia} value={dia.toString()}>
                           Dia {dia}
                         </SelectItem>

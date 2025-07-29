@@ -44,13 +44,14 @@ export interface Venda {
   documentos?: DocumentosVenda;
   status: "pendente" | "em_andamento" | "auditada" | "gerada" | "aguardando_habilitacao" | "habilitada" | "perdida";
   dataVenda: string;
+  dataGeracao: string; // Data de geração da venda
   observacoes?: string;
   vendedorId?: string; // ID do usuário que criou a venda
   vendedorNome?: string; // Nome do vendedor (para facilitar exibição)
   equipeId?: string; // ID da equipe do vendedor
   equipeNome?: string; // Nome da equipe (para facilitar exibição)
   planoId?: string; // ID do plano selecionado
-  diaVencimento?: number; // Dia do vencimento (1-31)
+  diaVencimento?: number; // Dia do vencimento (1-25)
   dataInstalacao?: string; // Data da instalação (ISO string)
   motivoPerda?: string; // Motivo quando marcada como perdida
 }

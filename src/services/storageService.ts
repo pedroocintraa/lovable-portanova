@@ -200,7 +200,7 @@ class StorageService {
         }
       }
 
-      // Separar metadados dos documentos
+      // Separar metadados dos documentos  
       const { documentos, ...metadata } = vendaEnriquecida;
       const vendaMetadata: VendaMetadata = {
         ...metadata,

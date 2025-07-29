@@ -5,15 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { Venda } from "@/types/venda";
+import { format, isWithinInterval, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { 
   Search, 
   MapPin, 
   Phone, 
   Mail, 
   Calendar,
+  CalendarIcon,
   Filter,
   Eye,
   User,
@@ -33,6 +40,8 @@ const AcompanhamentoVendas = () => {
   const [filtroStatus, setFiltroStatus] = useState<Venda["status"] | "todas">("todas");
   const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
   const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
+  const [dataInicio, setDataInicio] = useState<Date | undefined>();
+  const [dataFim, setDataFim] = useState<Date | undefined>();
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -68,7 +77,7 @@ const AcompanhamentoVendas = () => {
   }, [toast, usuario]);
 
   /**
-   * Filtra vendas baseado no texto, status, vendedor e equipe
+   * Filtra vendas baseado no texto, status, vendedor, equipe e período de datas
    */
   const vendasFiltradas = useMemo(() => {
     return vendas.filter(venda => {
@@ -85,9 +94,23 @@ const AcompanhamentoVendas = () => {
       const matchEquipe = filtroEquipe === "todas" || 
         (venda.equipeNome && venda.equipeNome.toLowerCase().includes(filtroEquipe.toLowerCase()));
 
-      return matchTexto && matchStatus && matchVendedor && matchEquipe;
+      // Filtro por período de datas (usando dataGeracao ou dataVenda como fallback)
+      let matchData = true;
+      if (dataInicio || dataFim) {
+        const dataVenda = parseISO(venda.dataGeracao || venda.dataVenda);
+        
+        if (dataInicio && dataFim) {
+          matchData = isWithinInterval(dataVenda, { start: dataInicio, end: dataFim });
+        } else if (dataInicio) {
+          matchData = dataVenda >= dataInicio;
+        } else if (dataFim) {
+          matchData = dataVenda <= dataFim;
+        }
+      }
+
+      return matchTexto && matchStatus && matchVendedor && matchEquipe && matchData;
     });
-  }, [vendas, filtroTexto, filtroStatus, filtroVendedor, filtroEquipe]);
+  }, [vendas, filtroTexto, filtroStatus, filtroVendedor, filtroEquipe, dataInicio, dataFim]);
 
   // Listas únicas para filtros
   const vendedoresUnicos = useMemo(() => {
@@ -220,7 +243,7 @@ const AcompanhamentoVendas = () => {
             </div>
             
             {/* Filtros por selects */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Vendedor</label>
                 <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
@@ -273,7 +296,77 @@ const AcompanhamentoVendas = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-foreground mb-2 block">Data Início</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dataInicio && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dataInicio}
+                      onSelect={setDataInicio}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-foreground mb-2 block">Data Fim</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dataFim && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataFim ? format(dataFim, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dataFim}
+                      onSelect={setDataFim}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
+            
+            {/* Botões para limpar filtros de data */}
+            {(dataInicio || dataFim) && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDataInicio(undefined);
+                    setDataFim(undefined);
+                  }}
+                >
+                  Limpar Datas
+                </Button>
+              </div>
+            )}
             
             {/* Filtros rápidos por botões */}
             <div className="flex gap-2 flex-wrap">
@@ -392,7 +485,7 @@ const AcompanhamentoVendas = () => {
                       )}
                       <div className="flex items-center space-x-1">
                         <Calendar className="h-4 w-4" />
-                        <span>{formatarData(venda.dataVenda)}</span>
+                        <span>Geração: {formatarData(venda.dataGeracao || venda.dataVenda)}</span>
                       </div>
                       <div className="flex items-center space-x-1 md:col-span-2">
                         <MapPin className="h-4 w-4" />
@@ -435,9 +528,9 @@ const AcompanhamentoVendas = () => {
                 Nenhuma venda encontrada
               </h3>
               <p className="text-muted-foreground">
-                {filtroTexto || filtroStatus !== "todas" || filtroVendedor !== "todos" || filtroEquipe !== "todas"
-                  ? "Tente ajustar os filtros ou cadastrar uma nova venda"
-                  : "Comece cadastrando sua primeira venda"}
+              {filtroTexto || filtroStatus !== "todas" || filtroVendedor !== "todos" || filtroEquipe !== "todas" || dataInicio || dataFim
+                ? "Tente ajustar os filtros ou cadastrar uma nova venda"
+                : "Comece cadastrando sua primeira venda"}
               </p>
             </CardContent>
           </Card>
