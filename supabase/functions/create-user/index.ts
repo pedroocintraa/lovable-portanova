@@ -129,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
       password: tempPassword,
       email_confirm: true, // Auto-confirm email
       user_metadata: {
-        nome: userData.nome,
+        nome: userData.nome.toUpperCase(),
         funcao: userData.funcao,
       },
     });

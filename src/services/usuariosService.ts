@@ -91,6 +91,29 @@ class UsuariosService {
       supervisor_equipe_id: usuario.supervisorEquipeId || null
     };
 
+    // Se o email está sendo alterado, sincronizar com Supabase Auth
+    if (usuario.email) {
+      try {
+        const { error: authError } = await supabase.auth.admin.updateUserById(id, {
+          email: usuario.email.toLowerCase(),
+          user_metadata: {
+            ...(usuario.nome && { nome: usuario.nome.toUpperCase() }),
+            ...(usuario.funcao && { funcao: usuario.funcao }),
+          }
+        });
+
+        if (authError) {
+          console.error('Erro ao atualizar email no Auth:', authError);
+          throw new Error('Erro ao sincronizar email com o sistema de autenticação: ' + authError.message);
+        }
+        
+        console.log('Email sincronizado com sucesso no Supabase Auth');
+      } catch (error: any) {
+        console.error('Erro na sincronização com Auth:', error);
+        throw new Error('Erro ao sincronizar dados com o sistema de autenticação');
+      }
+    }
+
     const { data, error } = await supabase
       .from('usuarios')
       .update(usuarioFormatado)
