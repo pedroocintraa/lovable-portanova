@@ -14,6 +14,7 @@ interface WelcomeEmailRequest {
   nome: string;
   email: string;
   funcao: string;
+  senha_temporaria?: string;
 }
 
 const getFuncaoDisplay = (funcao: string): string => {
@@ -26,8 +27,9 @@ const getFuncaoDisplay = (funcao: string): string => {
   return funcoes[funcao] || funcao;
 };
 
-const generateWelcomeEmailHTML = (nome: string, funcao: string): string => {
+const generateWelcomeEmailHTML = (nome: string, funcao: string, senhaTemporaria?: string): string => {
   const funcaoDisplay = getFuncaoDisplay(funcao);
+  const sistemaUrl = "https://leyeltbhwuxssawmhqcb.supabase.co"; // URL base do sistema
   
   return `
     <!DOCTYPE html>
@@ -46,9 +48,13 @@ const generateWelcomeEmailHTML = (nome: string, funcao: string): string => {
           .info-box { background-color: #f7fafc; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px; }
           .info-title { font-weight: 600; color: #2d3748; margin-bottom: 10px; }
           .info-text { color: #4a5568; line-height: 1.6; }
-          .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
+          .access-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; text-align: center; font-size: 16px; }
+          .password-box { background-color: #edf2f7; border: 2px dashed #cbd5e0; padding: 20px; margin: 15px 0; border-radius: 8px; text-align: center; }
+          .password-code { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 18px; font-weight: bold; color: #2d3748; background-color: #white; padding: 10px 15px; border-radius: 4px; border: 1px solid #cbd5e0; display: inline-block; letter-spacing: 1px; }
+          .warning-box { background-color: #fef5e7; border-left: 4px solid #f6ad55; padding: 20px; margin: 20px 0; border-radius: 4px; }
           .footer { background-color: #f7fafc; padding: 20px 30px; text-align: center; color: #718096; font-size: 14px; }
           .highlight { color: #667eea; font-weight: 600; }
+          .step-number { background-color: #667eea; color: white; border-radius: 50%; width: 25px; height: 25px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; }
         </style>
       </head>
       <body>
@@ -64,22 +70,44 @@ const generateWelcomeEmailHTML = (nome: string, funcao: string): string => {
               Seja muito bem-vindo(a) ao nosso Sistema de Vendas! Sua conta foi criada com sucesso e você já pode começar a utilizar a plataforma.
             </p>
 
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${sistemaUrl}" class="access-button">🚀 Acessar Sistema Agora</a>
+            </div>
+
             <div class="info-box">
-              <div class="info-title">📋 Informações da sua conta:</div>
+              <div class="info-title">📋 Suas credenciais de acesso:</div>
               <div class="info-text">
-                <strong>Nome:</strong> ${nome}<br>
+                <strong>Email:</strong> ${nome.split(' ')[0].toLowerCase()}@sistemavendas.com<br>
                 <strong>Função:</strong> ${funcaoDisplay}<br>
                 <strong>Status:</strong> Ativo
+              </div>
+              ${senhaTemporaria ? `
+                <div class="password-box">
+                  <div style="margin-bottom: 10px; font-weight: 600;">🔒 Sua senha temporária:</div>
+                  <div class="password-code">${senhaTemporaria}</div>
+                  <div style="margin-top: 10px; font-size: 14px; color: #718096;">
+                    Copie esta senha para fazer seu primeiro acesso
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="warning-box">
+              <div class="info-title">⚠️ Importante - Segurança:</div>
+              <div class="info-text">
+                Por segurança, você <strong>deve trocar esta senha</strong> no primeiro acesso ao sistema. 
+                Nunca compartilhe suas credenciais com outras pessoas.
               </div>
             </div>
 
             <div class="info-box">
-              <div class="info-title">🚀 Próximos passos:</div>
+              <div class="info-title">🚀 Como fazer seu primeiro acesso:</div>
               <div class="info-text">
-                1. Acesse o sistema usando seu email cadastrado<br>
-                2. Configure sua senha de acesso<br>
-                3. Explore as funcionalidades disponíveis para seu perfil<br>
-                4. Entre em contato com seu supervisor para orientações específicas
+                <div style="margin-bottom: 10px;"><span class="step-number">1</span>Clique no botão "Acessar Sistema" acima</div>
+                <div style="margin-bottom: 10px;"><span class="step-number">2</span>Digite seu email de acesso</div>
+                <div style="margin-bottom: 10px;"><span class="step-number">3</span>Use a senha temporária fornecida acima</div>
+                <div style="margin-bottom: 10px;"><span class="step-number">4</span>Defina sua nova senha pessoal</div>
+                <div style="margin-bottom: 10px;"><span class="step-number">5</span>Explore o sistema e suas funcionalidades</div>
               </div>
             </div>
 
@@ -87,6 +115,9 @@ const generateWelcomeEmailHTML = (nome: string, funcao: string): string => {
               <div class="info-title">❓ Precisa de ajuda?</div>
               <div class="info-text">
                 Nossa equipe de suporte está sempre pronta para ajudar! Entre em contato através dos canais de comunicação da empresa ou fale com seu supervisor direto.
+                <br><br>
+                <strong>Suporte técnico:</strong> suporte@sistemavendas.com<br>
+                <strong>Dúvidas gerais:</strong> Fale com seu supervisor
               </div>
             </div>
           </div>
@@ -94,6 +125,9 @@ const generateWelcomeEmailHTML = (nome: string, funcao: string): string => {
           <div class="footer">
             <p>Esta é uma mensagem automática do Sistema de Vendas.</p>
             <p>© ${new Date().getFullYear()} Sistema de Vendas - Todos os direitos reservados.</p>
+            <p style="margin-top: 10px; font-size: 12px;">
+              Este email contém informações confidenciais. Se você recebeu por engano, delete-o imediatamente.
+            </p>
           </div>
         </div>
       </body>
@@ -108,11 +142,12 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { usuario_id, nome, email, funcao }: WelcomeEmailRequest = await req.json();
+    const { usuario_id, nome, email, funcao, senha_temporaria }: WelcomeEmailRequest = await req.json();
 
     console.log(`Enviando email de boas-vindas para: ${nome} (${email}) - Função: ${funcao}`);
+    console.log(`Senha temporária incluída: ${senha_temporaria ? 'Sim' : 'Não'}`);
 
-    const emailHTML = generateWelcomeEmailHTML(nome, funcao);
+    const emailHTML = generateWelcomeEmailHTML(nome, funcao, senha_temporaria);
 
     const emailResponse = await resend.emails.send({
       from: "Sistema de Vendas <onboarding@resend.dev>",

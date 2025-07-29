@@ -131,6 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
       user_metadata: {
         nome: userData.nome.toUpperCase(),
         funcao: userData.funcao,
+        senha_temporaria: tempPassword, // Include temporary password for email
       },
     });
 
