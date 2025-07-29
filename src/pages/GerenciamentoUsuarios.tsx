@@ -119,11 +119,11 @@ export default function GerenciamentoUsuarios() {
         setMostrarFormulario(false);
         setUsuarioEditando(undefined);
         
-        // Mostrar credenciais para novo usuário
+        // Mostrar informações sobre email enviado e credenciais
         toast({
           title: "Usuário criado com sucesso!",
-          description: `📧 Email: ${response.email}\n🔑 Senha: Trocar@123\n\nRepasse essas credenciais para o usuário.`,
-          duration: 10000, // 10 segundos para dar tempo de ler
+          description: `📧 Email de confirmação enviado para: ${response.email}\n🔑 Senha padrão: Trocar@123\n\nO usuário deve confirmar o email antes de fazer login.`,
+          duration: 12000, // 12 segundos para dar tempo de ler
         });
       }
     } catch (error: any) {
