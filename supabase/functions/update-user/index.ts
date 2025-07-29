@@ -53,18 +53,41 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-    // Get current user from JWT
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      console.error('Erro ao obter usuário:', userError);
+    // Extract JWT token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    console.log('Authorization header:', authHeader ? 'presente' : 'ausente');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Token de autorização não encontrado ou formato inválido');
       return new Response(
-        JSON.stringify({ error: 'Usuário não autenticado' }),
+        JSON.stringify({ error: 'Token de autorização não encontrado' }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
+
+    // Get current user from JWT using the admin client
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwt);
+    
+    if (userError || !user) {
+      console.error('Erro ao obter usuário com JWT:', userError);
+      console.error('JWT válido:', jwt ? 'sim' : 'não');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Usuário não autenticado', 
+          details: userError?.message 
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('Usuário autenticado com sucesso:', user.id);
 
     // Get current user's role and permissions
     const { data: currentUserData, error: currentUserError } = await supabaseAdmin
@@ -103,10 +126,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get user being updated
+    // Get user being updated (include all fields for rollback)
     const { data: targetUser, error: targetUserError } = await supabaseAdmin
       .from('usuarios')
-      .select('email, funcao')
+      .select('*')
       .eq('id', userData.userId)
       .eq('ativo', true)
       .single();
@@ -174,17 +197,29 @@ const handler = async (req: Request): Promise<Response> => {
     // If email or other auth-related data is being updated, sync with Supabase Auth
     if (userData.email || userData.nome || userData.funcao) {
       try {
+        console.log('Iniciando sincronização com Supabase Auth...');
+        
+        // Get current user metadata from Auth
+        const { data: currentAuthUser } = await supabaseAdmin.auth.admin.getUserById(userData.userId);
+        const currentMetadata = currentAuthUser?.user?.user_metadata || {};
+        
+        console.log('Metadados atuais do Auth:', currentMetadata);
+        
         const authUpdateData: any = {};
         
-        if (userData.email) {
+        if (userData.email && userData.email.toLowerCase() !== targetUser.email.toLowerCase()) {
           authUpdateData.email = userData.email.toLowerCase();
+          console.log('Atualizando email no Auth:', authUpdateData.email);
         }
         
-        // Update user metadata
+        // Always update metadata to ensure name appears in Supabase Auth
         authUpdateData.user_metadata = {
+          ...currentMetadata,
           nome: userData.nome?.toUpperCase() || updatedUser.nome,
           funcao: userData.funcao || updatedUser.funcao,
         };
+        
+        console.log('Dados para atualização no Auth:', authUpdateData);
 
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
           userData.userId,
@@ -193,18 +228,27 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (authError) {
           console.error('Erro ao atualizar Auth:', authError);
-          // Try to rollback database changes
+          console.error('Dados que causaram erro:', authUpdateData);
+          
+          // Rollback database changes with correct original data
           await supabaseAdmin
             .from('usuarios')
             .update({
-              nome: targetUser.email, // Restore original data
+              nome: targetUser.nome, // Correct field mapping
               email: targetUser.email,
-              funcao: targetUser.funcao
+              funcao: targetUser.funcao,
+              telefone: targetUser.telefone,
+              cpf: targetUser.cpf,
+              equipe_id: targetUser.equipe_id,
+              supervisor_equipe_id: targetUser.supervisor_equipe_id
             })
             .eq('id', userData.userId);
           
           return new Response(
-            JSON.stringify({ error: 'Erro ao sincronizar com autenticação: ' + authError.message }),
+            JSON.stringify({ 
+              error: 'Erro ao sincronizar com autenticação', 
+              details: authError.message 
+            }),
             { 
               status: 500, 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -213,10 +257,16 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         console.log('Usuário atualizado com sucesso no Auth e DB');
+        console.log('Metadados finais no Auth:', authUpdateData.user_metadata);
+        
       } catch (error: any) {
         console.error('Erro na sincronização com Auth:', error);
+        console.error('Stack trace:', error.stack);
         return new Response(
-          JSON.stringify({ error: 'Erro ao sincronizar dados com autenticação' }),
+          JSON.stringify({ 
+            error: 'Erro ao sincronizar dados com autenticação',
+            details: error.message 
+          }),
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
