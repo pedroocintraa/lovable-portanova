@@ -318,14 +318,43 @@ class UsuariosService {
     }
   }
 
+  /**
+   * Obtém um usuário para exclusão (ignora status ativo)
+   * Usado especificamente para exclusão permanente
+   */
+  async obterUsuarioParaExclusao(id: string): Promise<Usuario | null> {
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Usuário não encontrado
+        }
+        throw error;
+      }
+
+      return this.converterParaUsuario(data);
+    } catch (error) {
+      console.error('Erro ao obter usuário para exclusão:', error);
+      throw error;
+    }
+  }
+
   async excluirUsuarioPermanentemente(id: string): Promise<boolean> {
     try {
-      const usuario = await this.obterUsuarioPorId(id);
+      // Usar método específico que não filtra por status ativo
+      const usuario = await this.obterUsuarioParaExclusao(id);
       if (!usuario) {
         throw new Error("Usuário não encontrado");
       }
 
-      // 1. Verificar se é o último administrador geral
+      console.log(`🗑️ Iniciando exclusão permanente de: ${usuario.nome} (${usuario.email}) - Status ativo: ${usuario.ativo}`);
+
+      // 1. Verificar se é o último administrador geral ATIVO
       if (usuario.funcao === FuncaoUsuario.ADMINISTRADOR_GERAL) {
         const { data: admins } = await supabase
           .from('usuarios')
@@ -334,7 +363,7 @@ class UsuariosService {
           .eq('ativo', true);
 
         if (admins && admins.length <= 1) {
-          throw new Error('Não é possível excluir o último administrador geral do sistema');
+          throw new Error('Não é possível excluir o último administrador geral ativo do sistema');
         }
       }
 
@@ -348,9 +377,9 @@ class UsuariosService {
           console.error('Erro ao excluir do Supabase Auth:', authError);
           throw new Error('Erro ao excluir usuário do sistema de autenticação');
         }
-        console.log(`Usuário ${usuario.nome} excluído do Supabase Auth`);
+        console.log(`✅ Usuário ${usuario.nome} excluído do Supabase Auth`);
       } else {
-        console.log(`Usuário ${usuario.nome} não existe no Supabase Auth (usuário órfão)`);
+        console.log(`⚠️ Usuário ${usuario.nome} não existe no Supabase Auth (usuário órfão)`);
       }
 
       // 4. Excluir da tabela usuarios
@@ -364,10 +393,10 @@ class UsuariosService {
         throw new Error('Erro ao excluir usuário do banco de dados');
       }
 
-      console.log(`Usuário ${usuario.nome} excluído permanentemente com sucesso`);
+      console.log(`🎉 Usuário ${usuario.nome} excluído permanentemente com sucesso`);
       return true;
     } catch (error) {
-      console.error('Erro ao excluir usuário permanentemente:', error);
+      console.error('❌ Erro ao excluir usuário permanentemente:', error);
       throw error;
     }
   }
