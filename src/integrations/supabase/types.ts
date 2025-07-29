@@ -372,9 +372,11 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string | null
+          data_instalacao: string | null
           data_venda: string | null
           dia_vencimento: number | null
           id: string
+          motivo_perda: string | null
           observacoes: string | null
           plano_id: string | null
           status: Database["public"]["Enums"]["status_venda"] | null
@@ -385,9 +387,11 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string | null
+          data_instalacao?: string | null
           data_venda?: string | null
           dia_vencimento?: number | null
           id?: string
+          motivo_perda?: string | null
           observacoes?: string | null
           plano_id?: string | null
           status?: Database["public"]["Enums"]["status_venda"] | null
@@ -398,9 +402,11 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string | null
+          data_instalacao?: string | null
           data_venda?: string | null
           dia_vencimento?: number | null
           id?: string
+          motivo_perda?: string | null
           observacoes?: string | null
           plano_id?: string | null
           status?: Database["public"]["Enums"]["status_venda"] | null
@@ -564,7 +570,14 @@ export type Database = {
         | "SUPERVISOR"
         | "VENDEDOR"
         | "SUPERVISOR_EQUIPE"
-      status_venda: "gerada" | "em_andamento" | "aprovada" | "perdida"
+      status_venda:
+        | "pendente"
+        | "em_andamento"
+        | "auditada"
+        | "gerada"
+        | "aguardando_habilitacao"
+        | "habilitada"
+        | "perdida"
       tipo_documento:
         | "documento_cliente_frente"
         | "documento_cliente_verso"
@@ -720,7 +733,15 @@ export const Constants = {
         "VENDEDOR",
         "SUPERVISOR_EQUIPE",
       ],
-      status_venda: ["gerada", "em_andamento", "aprovada", "perdida"],
+      status_venda: [
+        "pendente",
+        "em_andamento",
+        "auditada",
+        "gerada",
+        "aguardando_habilitacao",
+        "habilitada",
+        "perdida",
+      ],
       tipo_documento: [
         "documento_cliente_frente",
         "documento_cliente_verso",
