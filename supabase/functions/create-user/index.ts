@@ -120,11 +120,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create user with email confirmation using Supabase Auth admin API
+    // Create user with auto-confirmed email using Supabase Auth admin API
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userData.email,
       password: 'Trocar@123',
-      email_confirm: false, // Require email confirmation
+      email_confirm: true, // Auto-confirm email to bypass email sending issues
       user_metadata: {
         nome: userData.nome.toUpperCase(),
         funcao: userData.funcao,
@@ -181,12 +181,12 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         user: dbUser,
-        emailSent: true,
+        emailConfirmed: true,
         credentials: {
           email: dbUser.email,
           senha: "Trocar@123"
         },
-        message: `Usuário ${dbUser.nome} criado com sucesso! Email de confirmação enviado para ${dbUser.email}. Senha padrão: Trocar@123`
+        message: `Usuário ${dbUser.nome} criado com sucesso! Email auto-confirmado. Credenciais: ${dbUser.email} | Senha: Trocar@123`
       }),
       {
         status: 200,
