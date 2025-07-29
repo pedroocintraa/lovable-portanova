@@ -492,6 +492,43 @@ class StorageService {
     
     return { used: 0, available: 0, percentage: 0 };
   }
+
+  // Limpar completamente o storage local (localStorage + IndexedDB)
+  async limparStorageCompleto(): Promise<void> {
+    try {
+      console.log('🧹 Iniciando limpeza completa do storage...');
+      
+      // 1. Limpar localStorage
+      localStorage.removeItem(VENDAS_KEY);
+      console.log('✅ localStorage limpo');
+      
+      // 2. Limpar IndexedDB
+      await this.initDB();
+      if (this.db) {
+        const transaction = this.db.transaction([DOCUMENTS_STORE], 'readwrite');
+        const store = transaction.objectStore(DOCUMENTS_STORE);
+        
+        await new Promise<void>((resolve, reject) => {
+          const request = store.clear();
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+        
+        console.log('✅ IndexedDB limpo');
+      }
+      
+      // 3. Fechar conexão com DB
+      if (this.db) {
+        this.db.close();
+        this.db = null;
+      }
+      
+      console.log('✅ Limpeza completa do storage concluída');
+    } catch (error) {
+      console.error('❌ Erro ao limpar storage:', error);
+      throw new Error('Falha ao limpar storage');
+    }
+  }
 }
 
 export const storageService = new StorageService();
