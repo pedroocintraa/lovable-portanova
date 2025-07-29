@@ -10,6 +10,7 @@ import { storageService } from "@/services/storageService";
 import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
 import { StatusManager } from "@/components/StatusManager/StatusManager";
 import { StatusSelector } from "@/components/StatusSelector/StatusSelector";
+import { formatDateFromString } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 const DetalhesVenda = () => {
@@ -469,7 +470,7 @@ const DetalhesVenda = () => {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Data de Instalação</label>
-                    <p className="font-medium">{new Date(venda.dataInstalacao).toLocaleDateString("pt-BR")}</p>
+                    <p className="font-medium">{formatDateFromString(venda.dataInstalacao)}</p>
                   </div>
                 </div>
               )}
