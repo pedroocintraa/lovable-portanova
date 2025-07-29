@@ -7,14 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import { createAdminUser } from '@/utils/createAdmin';
-
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [creatingAdmin, setCreatingAdmin] = useState(false);
   
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -25,26 +22,6 @@ export default function Login() {
       navigate('/');
     }
   }, [isAuthenticated, authLoading, navigate]);
-
-  const handleCreateAdmin = async () => {
-    setCreatingAdmin(true);
-    setError('');
-    
-    try {
-      const result = await createAdminUser();
-      if (result.success) {
-        setError('');
-        alert('Admin criado com sucesso! Agora você pode fazer login com: pedroocintraa20@gmail.com / Trocar@123');
-      } else {
-        setError(result.error || 'Erro ao criar admin');
-      }
-    } catch (err: any) {
-      console.error('Create admin error:', err);
-      setError('Erro ao criar admin. Tente novamente.');
-    } finally {
-      setCreatingAdmin(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,27 +118,6 @@ export default function Login() {
               )}
             </Button>
           </form>
-          
-          <div className="mt-4 pt-4 border-t">
-            <Button 
-              onClick={handleCreateAdmin}
-              variant="outline" 
-              className="w-full" 
-              disabled={creatingAdmin}
-            >
-              {creatingAdmin ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Criando Admin...
-                </>
-              ) : (
-                'Criar Usuário Admin'
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Clique aqui para criar o usuário administrador no sistema de autenticação
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
