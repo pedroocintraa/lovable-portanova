@@ -31,7 +31,7 @@ const ResetPassword = () => {
   const refreshToken = searchParams.get('refresh_token');
   const type = searchParams.get('type');
 
-  if (!accessToken || type !== 'recovery') {
+  if (!accessToken || !['recovery', 'invite'].includes(type || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
@@ -129,10 +129,10 @@ const ResetPassword = () => {
             <Lock className="w-6 h-6 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">
-            Redefinir Senha
+            {type === 'invite' ? 'Bem-vindo!' : 'Redefinir Senha'}
           </CardTitle>
           <p className="text-muted-foreground">
-            Digite sua nova senha abaixo
+            {type === 'invite' ? 'Defina sua senha para acessar o sistema' : 'Digite sua nova senha abaixo'}
           </p>
         </CardHeader>
         <CardContent>
