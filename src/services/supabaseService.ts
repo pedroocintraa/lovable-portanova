@@ -14,55 +14,61 @@ class SupabaseService {
    * Salva uma nova venda no Supabase
    */
   async salvarVenda(vendaData: VendaFormData): Promise<void> {
+    console.log('🚀 SupabaseService: Iniciando salvamento de venda...');
+    
     try {
-      console.log('🚀 SupabaseService: Iniciando salvamento de venda...');
+      // 1. Verificar sessão atual
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      // 1. Verificar e garantir token JWT válido
-      const authData = await ensureValidToken();
-      const { user, session } = authData;
-      
-      console.log('🔍 SupabaseService: Dados de autenticação validados:', {
-        userId: user.id,
-        userEmail: user.email,
-        hasAccessToken: !!session.access_token,
-        sessionExpiry: session.expires_at,
-        tokenLength: session.access_token?.length
-      });
-
-      // 2. Usar cliente padrão primeiro para testar contexto básico
-      console.log('🔍 SupabaseService: Testando contexto com cliente padrão...');
-      const { data: basicAuthTest } = await supabase.rpc('debug_auth_context');
-      console.log('🔍 SupabaseService: Teste básico de contexto:', basicAuthTest);
-      
-      // 3. Se contexto básico falhar, usar cliente autenticado forçado
-      let clienteParaUsar = supabase;
-      
-      if (!basicAuthTest || !basicAuthTest[0]?.auth_uid) {
-        console.log('⚠️ SupabaseService: Contexto básico falhou, criando cliente autenticado...');
-        clienteParaUsar = await createAuthenticatedSupabaseClient(session);
-        await forceAuthContext(clienteParaUsar, session);
-        
-        // Testar novamente
-        const { data: forcedAuthTest } = await clienteParaUsar.rpc('debug_auth_context');
-        console.log('🔍 SupabaseService: Teste após força:', forcedAuthTest);
+      if (sessionError || !session) {
+        console.error('❌ SupabaseService: Erro de sessão:', sessionError);
+        throw new Error('Sessão expirada. Faça login novamente.');
       }
 
-      // 4. Verificar se o usuário existe na tabela usuarios
-      const { data: usuarioData, error: usuarioError } = await clienteParaUsar
+      console.log('✅ SupabaseService: Sessão válida encontrada');
+      
+      // 2. Testar contexto de autenticação
+      const { data: authTest, error: authTestError } = await supabase.rpc('debug_auth_context');
+      console.log('🔍 SupabaseService: Teste de autenticação:', { authTest, authTestError });
+      
+      if (!authTest?.[0]?.auth_uid) {
+        console.warn('⚠️ SupabaseService: auth.uid() está null, tentando refresh...');
+        
+        // Tentar refresh da sessão
+        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshedSession.session) {
+          console.error('❌ SupabaseService: Falha no refresh:', refreshError);
+          throw new Error('Falha na autenticação. Faça logout e login novamente.');
+        }
+        
+        console.log('🔄 SupabaseService: Sessão atualizada');
+        
+        // Testar novamente
+        const { data: newAuthTest } = await supabase.rpc('debug_auth_context');
+        console.log('🔍 SupabaseService: Teste após refresh:', newAuthTest);
+        
+        if (!newAuthTest?.[0]?.auth_uid) {
+          throw new Error('Problema de autenticação persistente. Contate o suporte.');
+        }
+      }
+
+      // 3. Verificar usuário na tabela usuarios
+      const { data: usuarioData, error: usuarioError } = await supabase
         .from('usuarios')
-        .select('id, nome, email')
-        .eq('id', user.id)
+        .select('id, nome, email, ativo')
+        .eq('email', session.user.email)
         .eq('ativo', true)
         .single();
         
       console.log('🔍 SupabaseService: Verificação do usuário:', { usuarioData, usuarioError });
       
       if (usuarioError || !usuarioData) {
-        console.error('❌ Usuário não encontrado ou erro:', usuarioError);
-        throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.');
+        console.error('❌ SupabaseService: Usuário não encontrado:', usuarioError);
+        throw new Error('Usuário não encontrado no sistema ou inativo.');
       }
 
-      // 5. Preparar dados do cliente  
+      // 4. Preparar dados do cliente  
       console.log('📝 SupabaseService: Preparando dados do cliente...');
       const clienteData = {
         nome: vendaData.cliente.nome.toUpperCase(),
@@ -70,10 +76,10 @@ class SupabaseService {
         telefone: vendaData.cliente.telefone,
         email: vendaData.cliente.email || null,
         data_nascimento: vendaData.cliente.dataNascimento || null,
-        vendedor_id: user.id
+        vendedor_id: usuarioData.id
       };
 
-      // 6. Preparar dados do endereço
+      // 5. Preparar dados do endereço
       console.log('📝 SupabaseService: Preparando dados do endereço...');
       const enderecoData = {
         cep: vendaData.cliente.endereco.cep,
@@ -85,9 +91,9 @@ class SupabaseService {
         uf: vendaData.cliente.endereco.uf.toUpperCase()
       };
 
-      // 7. Inserir cliente
+      // 6. Inserir cliente
       console.log('💾 SupabaseService: Salvando cliente...');
-      const { data: clienteInserido, error: clienteError } = await clienteParaUsar
+      const { data: clienteInserido, error: clienteError } = await supabase
         .from('clientes')
         .insert(clienteData)
         .select()
@@ -100,9 +106,9 @@ class SupabaseService {
       
       console.log('✅ Cliente salvo:', clienteInserido);
 
-      // 8. Inserir endereço
+      // 7. Inserir endereço
       console.log('🏠 SupabaseService: Salvando endereço...');
-      const { data: enderecoInserido, error: enderecoError } = await clienteParaUsar
+      const { data: enderecoInserido, error: enderecoError } = await supabase
         .from('enderecos')
         .insert(enderecoData)
         .select()
@@ -115,9 +121,9 @@ class SupabaseService {
       
       console.log('✅ Endereço salvo:', enderecoInserido);
 
-      // 9. Atualizar cliente com endereço
+      // 8. Atualizar cliente com endereço
       console.log('🔄 SupabaseService: Atualizando cliente com endereço...');
-      const { error: updateClienteError } = await clienteParaUsar
+      const { error: updateClienteError } = await supabase
         .from('clientes')
         .update({ endereco_id: enderecoInserido.id })
         .eq('id', clienteInserido.id);
@@ -127,7 +133,7 @@ class SupabaseService {
         throw new Error(`Erro ao atualizar cliente: ${updateClienteError.message}`);
       }
 
-      // 10. Inserir venda
+      // 9. Inserir venda
       console.log('📋 SupabaseService: Salvando venda...');
       const vendaParaInserir = {
         cliente_id: clienteInserido.id,
@@ -135,12 +141,12 @@ class SupabaseService {
         dia_vencimento: vendaData.diaVencimento,
         data_instalacao: vendaData.dataInstalacao,
         observacoes: vendaData.observacoes?.toUpperCase() || null,
-        vendedor_id: user.id,
+        vendedor_id: usuarioData.id,
         vendedor_nome: usuarioData.nome,
         status: 'pendente' as const
       };
 
-      const { data: vendaInserida, error: vendaError } = await clienteParaUsar
+      const { data: vendaInserida, error: vendaError } = await supabase
         .from('vendas')
         .insert(vendaParaInserir)
         .select()

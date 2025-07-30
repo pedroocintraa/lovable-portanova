@@ -137,7 +137,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Simple input validation and sanitization
+    console.log('🔐 AuthContext: Iniciando processo de login...');
+    
+    // Validação e sanitização
     const validateInput = (email: string, password: string): string[] => {
       const errors: string[] = [];
       if (!email.trim()) errors.push('Email é obrigatório');
@@ -151,18 +153,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return input.trim().replace(/[<>]/g, '').substring(0, 255);
     };
 
-    // Input validation
     const validationErrors = validateInput(email, password);
     if (validationErrors.length > 0) {
       return { error: { message: validationErrors[0] } };
     }
     
-    // Sanitize inputs
     const sanitizedEmail = sanitizeInput(email).toLowerCase();
     const sanitizedPassword = sanitizeInput(password);
     
-    // Server-side rate limiting check
     try {
+      // Verificar rate limit
       const { data: isAllowed } = await supabase.rpc('check_rate_limit', {
         p_ip: '0.0.0.0',
         p_email: sanitizedEmail
@@ -177,16 +177,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return { error: { message: 'Muitas tentativas de login. Tente novamente em 1 hora.' } };
       }
     } catch (rateLimitError) {
-      console.warn('Rate limit check failed:', rateLimitError);
+      console.warn('AuthContext: Rate limit check failed:', rateLimitError);
     }
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // Limpar qualquer sessão anterior
+      console.log('🧹 AuthContext: Limpando sessão anterior...');
+      await supabase.auth.signOut();
+      
+      // Fazer login
+      console.log('🔑 AuthContext: Fazendo login...');
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: sanitizedEmail,
         password: sanitizedPassword
       });
       
-      // Log the attempt
+      // Log da tentativa
       try {
         await supabase.rpc('log_login_attempt', {
           p_ip: '0.0.0.0',
@@ -194,11 +200,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
           p_success: !error
         });
       } catch (logError) {
-        console.warn('Failed to log login attempt:', logError);
+        console.warn('AuthContext: Failed to log login attempt:', logError);
+      }
+      
+      if (error) {
+        console.error('❌ AuthContext: Erro no login:', error);
+        return { error };
+      }
+      
+      if (data.session) {
+        console.log('✅ AuthContext: Login bem-sucedido');
+        console.log('🔍 AuthContext: Verificando contexto de autenticação em 2s...');
+        
+        // Aguardar um pouco e verificar se o contexto está funcionando
+        setTimeout(async () => {
+          try {
+            const { data: authTest } = await supabase.rpc('debug_auth_context');
+            console.log('🔍 AuthContext: Teste de contexto pós-login:', authTest);
+            
+            if (!authTest?.[0]?.auth_uid) {
+              console.warn('⚠️ AuthContext: auth.uid() ainda está null após login!');
+            } else {
+              console.log('✅ AuthContext: Contexto de autenticação funcionando');
+            }
+          } catch (testError) {
+            console.error('❌ AuthContext: Erro ao testar contexto:', testError);
+          }
+        }, 2000);
       }
       
       return { error };
     } catch (err: any) {
+      console.error('❌ AuthContext: Erro inesperado no login:', err);
+      
       try {
         await supabase.rpc('log_login_attempt', {
           p_ip: '0.0.0.0',
@@ -206,8 +240,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           p_success: false
         });
       } catch (logError) {
-        console.warn('Failed to log login attempt:', logError);
+        console.warn('AuthContext: Failed to log login attempt:', logError);
       }
+      
       return { error: err };
     }
   };
