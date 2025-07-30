@@ -451,6 +451,20 @@ export type Database = {
         Args: { p_ip: unknown; p_email: string }
         Returns: boolean
       }
+      debug_auth_advanced: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auth_uid: string
+          auth_email: string
+          jwt_claims: Json
+          session_valid: boolean
+          usuario_encontrado: boolean
+          usuario_id: string
+          usuario_nome: string
+          usuario_funcao: Database["public"]["Enums"]["funcao_usuario"]
+          timestamp_check: string
+        }[]
+      }
       debug_auth_context: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -477,6 +491,10 @@ export type Database = {
         Returns: string
       }
       get_usuario_atual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_usuario_atual_robusto: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

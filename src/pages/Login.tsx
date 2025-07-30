@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { MigrationPanel } from '@/components/MigrationPanel';
+import { AuthDebugPanel } from '@/components/AuthDebugPanel';
 // import saTelecomLogo from '@/assets/sa-telecom-logo.png';
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showMigrationPanel, setShowMigrationPanel] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const {
     login,
     isAuthenticated,
@@ -69,6 +71,11 @@ export default function Login() {
           <MigrationPanel />
         )}
         
+        {/* Painel de Debug de Autenticação */}
+        {showDebugPanel && (
+          <AuthDebugPanel />
+        )}
+        
         <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
@@ -81,19 +88,28 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Botão de Migração de Emergência */}
-            {!showMigrationPanel && (
+            {/* Botões de Debug e Migração */}
+            {!showMigrationPanel && !showDebugPanel && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
-                  <span>Problemas com login? Pode ser necessário migração.</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowMigrationPanel(true)}
-                  >
-                    Migração
-                  </Button>
+                  <span>Problemas com login? Ferramentas de diagnóstico:</span>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowDebugPanel(true)}
+                    >
+                      Debug Auth
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowMigrationPanel(true)}
+                    >
+                      Migração
+                    </Button>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}

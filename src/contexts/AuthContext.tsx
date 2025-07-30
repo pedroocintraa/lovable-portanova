@@ -215,11 +215,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Aguardar um pouco e verificar se o contexto está funcionando
         setTimeout(async () => {
           try {
-            const { data: authTest } = await supabase.rpc('debug_auth_context');
-            console.log('🔍 AuthContext: Teste de contexto pós-login:', authTest);
+            const { debugAuthenticationAdvanced, validateAndFixAuth } = await import('@/utils/authFix');
+            const debugResult = await debugAuthenticationAdvanced();
+            console.log('🔍 AuthContext: Debug avançado pós-login:', debugResult);
             
-            if (!authTest?.[0]?.auth_uid) {
-              console.warn('⚠️ AuthContext: auth.uid() ainda está null após login!');
+            if (!debugResult.session_valid) {
+              console.warn('⚠️ AuthContext: Contexto inválido detectado, tentando correção...');
+              const fixResult = await validateAndFixAuth();
+              console.log('🛠️ AuthContext: Resultado da correção:', fixResult);
             } else {
               console.log('✅ AuthContext: Contexto de autenticação funcionando');
             }
