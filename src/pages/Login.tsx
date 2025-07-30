@@ -65,6 +65,13 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-6">
+            <img 
+              src={saTelecomLogo} 
+              alt="SA TELECOM" 
+              className="h-20 w-auto object-contain"
+            />
+          </div>
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
             Faça login para acessar o sistema
