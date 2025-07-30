@@ -15,40 +15,56 @@ class SupabaseService {
    */
   async salvarVenda(vendaData: VendaFormData): Promise<void> {
     try {
-      // Verificar e garantir token JWT válido antes das operações
+      console.log('🚀 SupabaseService: Iniciando salvamento de venda...');
+      
+      // 1. Verificar e garantir token JWT válido
       const authData = await ensureValidToken();
       const { user, session } = authData;
       
-      console.log('🔍 SupabaseService: Token JWT validado:', {
+      console.log('🔍 SupabaseService: Dados de autenticação validados:', {
         userId: user.id,
+        userEmail: user.email,
         hasAccessToken: !!session.access_token,
-        sessionExpiry: session.expires_at
+        sessionExpiry: session.expires_at,
+        tokenLength: session.access_token?.length
       });
 
-      // Criar cliente autenticado com token forçado
-      const authenticatedClient = await createAuthenticatedSupabaseClient(session);
-      await forceAuthContext(authenticatedClient, session);
+      // 2. Usar cliente padrão primeiro para testar contexto básico
+      console.log('🔍 SupabaseService: Testando contexto com cliente padrão...');
+      const { data: basicAuthTest } = await supabase.rpc('debug_auth_context');
+      console.log('🔍 SupabaseService: Teste básico de contexto:', basicAuthTest);
+      
+      // 3. Se contexto básico falhar, usar cliente autenticado forçado
+      let clienteParaUsar = supabase;
+      
+      if (!basicAuthTest || !basicAuthTest[0]?.auth_uid) {
+        console.log('⚠️ SupabaseService: Contexto básico falhou, criando cliente autenticado...');
+        clienteParaUsar = await createAuthenticatedSupabaseClient(session);
+        await forceAuthContext(clienteParaUsar, session);
+        
+        // Testar novamente
+        const { data: forcedAuthTest } = await clienteParaUsar.rpc('debug_auth_context');
+        console.log('🔍 SupabaseService: Teste após força:', forcedAuthTest);
+      }
 
-      // Debug do contexto de autenticação no banco
-      const { data: debugAuth, error: debugError } = await authenticatedClient.rpc('debug_auth_context');
-      console.log('🔍 SupabaseService: Debug contexto auth no banco:', { debugAuth, debugError });
-
-      // Verificar se o usuário existe na tabela usuarios
-      const { data: usuarioData } = await authenticatedClient
+      // 4. Verificar se o usuário existe na tabela usuarios
+      const { data: usuarioData, error: usuarioError } = await clienteParaUsar
         .from('usuarios')
-        .select('id, nome')
+        .select('id, nome, email')
         .eq('id', user.id)
+        .eq('ativo', true)
         .single();
         
-      console.log('🔍 SupabaseService: Verificando usuário na tabela', { usuarioData });
+      console.log('🔍 SupabaseService: Verificação do usuário:', { usuarioData, usuarioError });
       
-      if (!usuarioData) {
+      if (usuarioError || !usuarioData) {
+        console.error('❌ Usuário não encontrado ou erro:', usuarioError);
         throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.');
       }
 
-      // 1. Criar endereço usando cliente autenticado
-      console.log('📝 SupabaseService: Tentando criar endereço com cliente autenticado...');
-      const { data: endereco, error: enderecoError } = await authenticatedClient
+      // 5. Criar endereço
+      console.log('📝 SupabaseService: Criando endereço...');
+      const { data: endereco, error: enderecoError } = await clienteParaUsar
         .from('enderecos')
         .insert({
           cep: vendaData.cliente.endereco.cep,
@@ -64,14 +80,14 @@ class SupabaseService {
 
       if (enderecoError) {
         console.error('❌ Erro ao criar endereço:', enderecoError);
-        throw enderecoError;
+        throw new Error(`Erro ao criar endereço: ${enderecoError.message}`);
       }
       
-      console.log('✅ Endereço criado:', endereco.id);
+      console.log('✅ Endereço criado com sucesso:', endereco.id);
 
-      // 2. Criar cliente
-      console.log('📝 SupabaseService: Tentando criar cliente...');
-      const { data: cliente, error: clienteError } = await authenticatedClient
+      // 6. Criar cliente
+      console.log('📝 SupabaseService: Criando cliente...');
+      const { data: cliente, error: clienteError } = await clienteParaUsar
         .from('clientes')
         .insert({
           nome: vendaData.cliente.nome.toUpperCase(),
@@ -86,26 +102,19 @@ class SupabaseService {
 
       if (clienteError) {
         console.error('❌ Erro ao criar cliente:', clienteError);
-        throw clienteError;
+        throw new Error(`Erro ao criar cliente: ${clienteError.message}`);
       }
       
-      console.log('✅ Cliente criado:', cliente.id);
+      console.log('✅ Cliente criado com sucesso:', cliente.id);
 
-      // 3. Usar dados do usuário já verificados
-      const { data: vendedor } = await authenticatedClient
-        .from('usuarios')
-        .select('nome, equipe_id')
-        .eq('id', user.id)
-        .single();
-
-      // 4. Criar venda
-      console.log('📝 SupabaseService: Tentando criar venda...');
-      const { data: venda, error: vendaError } = await authenticatedClient
+      // 7. Criar venda
+      console.log('📝 SupabaseService: Criando venda...');
+      const { data: venda, error: vendaError } = await clienteParaUsar
         .from('vendas')
         .insert({
           cliente_id: cliente.id,
           vendedor_id: user.id,
-          vendedor_nome: vendedor?.nome || 'VENDEDOR',
+          vendedor_nome: usuarioData.nome,
           plano_id: vendaData.planoId,
           dia_vencimento: vendaData.diaVencimento,
           data_instalacao: vendaData.dataInstalacao,
@@ -117,20 +126,21 @@ class SupabaseService {
 
       if (vendaError) {
         console.error('❌ Erro ao criar venda:', vendaError);
-        throw vendaError;
+        throw new Error(`Erro ao criar venda: ${vendaError.message}`);
       }
       
-      console.log('✅ Venda criada:', venda.id);
+      console.log('✅ Venda criada com sucesso:', venda.id);
 
-      // 5. Salvar documentos (se existirem)
+      // 8. Salvar documentos (se existirem)
       if (vendaData.documentos) {
+        console.log('📎 SupabaseService: Salvando documentos...');
         await this.salvarDocumentos(venda.id, vendaData.documentos);
       }
 
-      console.log('✅ Venda salva com sucesso no Supabase:', venda.id);
-    } catch (error) {
-      console.error('❌ Erro ao salvar venda:', error);
-      throw new Error('Falha ao salvar venda');
+      console.log('🎉 Venda salva com sucesso no Supabase!', venda.id);
+    } catch (error: any) {
+      console.error('❌ Erro completo ao salvar venda:', error);
+      throw new Error(error.message || 'Falha ao salvar venda');
     }
   }
 
