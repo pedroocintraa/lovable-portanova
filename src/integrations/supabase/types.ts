@@ -463,6 +463,8 @@ export type Database = {
           usuario_nome: string
           usuario_funcao: Database["public"]["Enums"]["funcao_usuario"]
           timestamp_check: string
+          get_usuario_atual_result: string
+          get_usuario_por_email_result: string
         }[]
       }
       debug_auth_context: {
