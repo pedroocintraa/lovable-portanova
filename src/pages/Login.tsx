@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import saTelecomLogo from '@/assets/sa-telecom-logo.png';
+// import saTelecomLogo from '@/assets/sa-telecom-logo.png';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,7 +67,7 @@ export default function Login() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-6">
             <img 
-              src={saTelecomLogo} 
+              src="/lovable-uploads/5050fb87-993c-4bfb-a09d-e936a7f7a0b6.png" 
               alt="SA TELECOM" 
               className="h-20 w-auto object-contain"
             />
