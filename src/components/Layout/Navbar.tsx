@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { Users, Menu, X, UserCog, Home, Plus, Eye, Settings, LogOut, Lock, ChevronDown } from "lucide-react";
-import saTelecomLogo from '@/assets/sa-telecom-logo.png';
+
 
 /**
  * Componente de navegação principal do CRM
@@ -60,7 +60,7 @@ export const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3">
-              <img src={saTelecomLogo} alt="SA TELECOM" className="h-10 w-auto object-contain" />
+              <img src="/lovable-uploads/c25efcbd-b42b-48b3-9e82-db0628ef0cbc.png" alt="SA TELECOM" className="h-10 w-auto object-contain" />
               
             </Link>
           </div>
