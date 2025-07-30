@@ -64,7 +64,7 @@ export default function Login() {
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-6">
-            <img src="/lovable-uploads/5050fb87-993c-4bfb-a09d-e936a7f7a0b6.png" alt="SA TELECOM" className="max-h-52 " />
+            <img src="/lovable-uploads/c25efcbd-b42b-48b3-9e82-db0628ef0cbc.png" alt="SA TELECOM" className="max-h-52 " />
           </div>
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
