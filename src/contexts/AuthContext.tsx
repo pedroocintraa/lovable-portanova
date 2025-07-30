@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Usuario, PermissoesUsuario } from "@/types/usuario";
+import { Usuario, PermissoesUsuario, FuncaoUsuario } from "@/types/usuario";
 import { usuariosService } from "@/services/usuariosService";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
@@ -31,64 +31,85 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
     
-    // Timeout de segurança para evitar loading infinito
+    // Timeout de segurança reduzido para evitar loading infinito
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
         console.log('AuthContext: Timeout de segurança ativado - finalizando loading');
         setLoading(false);
       }
-    }, 8000);
+    }, 5000); // Reduzido para 5 segundos
     
-    // Configurar listener de autenticação integrado
+    // Configurar listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (!mounted) return;
         
-        console.log('AuthContext: Auth state integrado changed', { 
+        console.log('AuthContext: Auth state changed', { 
           event, 
           userId: session?.user?.id, 
           hasSession: !!session,
-          hasAccessToken: !!session?.access_token,
-          expiresAt: session?.expires_at
+          userEmail: session?.user?.email
         });
         
+        // Atualizar estados imediatamente
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Usar setTimeout para diferir a chamada async e evitar loops
-          setTimeout(async () => {
-            if (!mounted) return;
+          try {
+            console.log('AuthContext: Buscando dados do usuário:', session.user.id);
             
-            try {
-              // Buscar usuário pelo ID do auth (nova integração)
-              const userData = await usuariosService.obterUsuarioPorId(session.user.id);
+            // Primeiro tentar por ID
+            let userData = await usuariosService.obterUsuarioPorId(session.user.id);
+            
+            // Se não encontrar por ID, tentar por email
+            if (!userData && session.user.email) {
+              console.log('AuthContext: Usuário não encontrado por ID, tentando por email');
+              const { data: usuarioByEmail } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('email', session.user.email)
+                .eq('ativo', true)
+                .single();
               
-              if (userData && mounted) {
-                console.log('AuthContext: Usuário encontrado na integração:', userData.nome);
-                setUsuario(userData);
-                setPermissoes(usuariosService.obterPermissoes(userData.funcao));
-              } else if (mounted) {
-                console.warn('AuthContext: Usuário auth existe mas não na tabela usuarios. Fazendo logout.');
-                // Se o usuário existe no auth mas não na nossa tabela, fazer logout
-                await supabase.auth.signOut();
-                setUsuario(null);
-                setPermissoes(null);
-              }
-            } catch (error) {
-              console.error('AuthContext: Erro ao carregar dados do usuário integrado:', error);
-              if (mounted) {
-                // Em caso de erro, fazer logout para manter consistência
-                await supabase.auth.signOut();
-                setUsuario(null);
-                setPermissoes(null);
-              }
-            } finally {
-              if (mounted) {
-                setLoading(false);
+              if (usuarioByEmail) {
+                // Transformar dados do Supabase para o formato Usuario
+                userData = {
+                  id: usuarioByEmail.id,
+                  nome: usuarioByEmail.nome,
+                  telefone: usuarioByEmail.telefone,
+                  email: usuarioByEmail.email,
+                  cpf: usuarioByEmail.cpf,
+                  funcao: usuarioByEmail.funcao as FuncaoUsuario,
+                  dataCadastro: usuarioByEmail.data_cadastro || usuarioByEmail.created_at,
+                  ativo: usuarioByEmail.ativo,
+                  equipeId: usuarioByEmail.equipe_id,
+                  supervisorEquipeId: usuarioByEmail.supervisor_equipe_id,
+                  nomeEquipe: undefined // Será buscado se necessário
+                };
               }
             }
-          }, 100);
+            
+            if (userData && mounted) {
+              console.log('AuthContext: Usuário encontrado:', userData.nome);
+              setUsuario(userData);
+              setPermissoes(usuariosService.obterPermissoes(userData.funcao));
+            } else if (mounted) {
+              console.warn('AuthContext: Usuário auth existe mas não na tabela usuarios.');
+              setUsuario(null);
+              setPermissoes(null);
+            }
+          } catch (error) {
+            console.error('AuthContext: Erro ao carregar dados do usuário:', error);
+            if (mounted) {
+              setUsuario(null);
+              setPermissoes(null);
+            }
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
+          }
         } else {
           setUsuario(null);
           setPermissoes(null);
@@ -100,10 +121,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Verificar sessão existente
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('AuthContext: Verificando sessão inicial');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('AuthContext: Erro ao verificar sessão:', error);
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
+        }
+        
         if (!mounted) return;
         
-        console.log('AuthContext: Verificando sessão inicial integrada', { userId: session?.user?.id });
+        console.log('AuthContext: Sessão inicial:', { 
+          hasSession: !!session, 
+          userId: session?.user?.id,
+          userEmail: session?.user?.email 
+        });
         
         if (!session) {
           setSession(null);
@@ -112,7 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setPermissoes(null);
           setLoading(false);
         }
-        // Se tem sessão, o onAuthStateChange vai lidar com isso
+        // Se tem sessão, o onAuthStateChange já vai lidar com ela
       } catch (error) {
         console.error('AuthContext: Erro ao verificar sessão inicial:', error);
         if (mounted) {
