@@ -75,8 +75,7 @@ class SupabaseService {
         cpf: vendaData.cliente.cpf,
         telefone: vendaData.cliente.telefone,
         email: vendaData.cliente.email || null,
-        data_nascimento: vendaData.cliente.dataNascimento || null,
-        vendedor_id: usuarioData.id
+        data_nascimento: vendaData.cliente.dataNascimento || null
       };
 
       // 5. Preparar dados do endereço
