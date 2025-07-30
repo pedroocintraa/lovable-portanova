@@ -5,6 +5,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Venda, VendaFormData, Cliente, Endereco, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
+import { ensureAuthenticated } from "@/utils/authUtils";
 
 class SupabaseService {
   
@@ -13,7 +14,29 @@ class SupabaseService {
    */
   async salvarVenda(vendaData: VendaFormData): Promise<void> {
     try {
+      // Verificar autenticação usando utilitário
+      const authData = await ensureAuthenticated();
+      if (!authData) {
+        throw new Error('Falha na verificação de autenticação');
+      }
+      
+      const { user } = authData;
+
+      // Verificar se o usuário existe na tabela usuarios
+      const { data: usuarioData } = await supabase
+        .from('usuarios')
+        .select('id, nome')
+        .eq('id', user.id)
+        .single();
+        
+      console.log('🔍 SupabaseService: Verificando usuário na tabela', { usuarioData });
+      
+      if (!usuarioData) {
+        throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.');
+      }
+
       // 1. Criar endereço
+      console.log('📝 SupabaseService: Tentando criar endereço...');
       const { data: endereco, error: enderecoError } = await supabase
         .from('enderecos')
         .insert({
@@ -28,9 +51,15 @@ class SupabaseService {
         .select()
         .single();
 
-      if (enderecoError) throw enderecoError;
+      if (enderecoError) {
+        console.error('❌ Erro ao criar endereço:', enderecoError);
+        throw enderecoError;
+      }
+      
+      console.log('✅ Endereço criado:', endereco.id);
 
       // 2. Criar cliente
+      console.log('📝 SupabaseService: Tentando criar cliente...');
       const { data: cliente, error: clienteError } = await supabase
         .from('clientes')
         .insert({
@@ -44,12 +73,14 @@ class SupabaseService {
         .select()
         .single();
 
-      if (clienteError) throw clienteError;
+      if (clienteError) {
+        console.error('❌ Erro ao criar cliente:', clienteError);
+        throw clienteError;
+      }
+      
+      console.log('✅ Cliente criado:', cliente.id);
 
-      // 3. Obter dados do usuário atual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
+      // 3. Usar dados do usuário já verificados
       const { data: vendedor } = await supabase
         .from('usuarios')
         .select('nome, equipe_id')
@@ -57,6 +88,7 @@ class SupabaseService {
         .single();
 
       // 4. Criar venda
+      console.log('📝 SupabaseService: Tentando criar venda...');
       const { data: venda, error: vendaError } = await supabase
         .from('vendas')
         .insert({
@@ -72,7 +104,12 @@ class SupabaseService {
         .select()
         .single();
 
-      if (vendaError) throw vendaError;
+      if (vendaError) {
+        console.error('❌ Erro ao criar venda:', vendaError);
+        throw vendaError;
+      }
+      
+      console.log('✅ Venda criada:', venda.id);
 
       // 5. Salvar documentos (se existirem)
       if (vendaData.documentos) {

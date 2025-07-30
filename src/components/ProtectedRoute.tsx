@@ -28,6 +28,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isLoading = loading || localLoading;
 
   console.log('ProtectedRoute:', { isAuthenticated, loading, localLoading, isLoading });
+  
+  // Verificar se há problemas de autenticação
+  if (!loading && !localLoading && !isAuthenticated) {
+    console.warn('🚨 ProtectedRoute: Usuário não autenticado detectado!');
+  }
 
   if (isLoading) {
     return (

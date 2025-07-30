@@ -44,7 +44,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       (event, session) => {
         if (!mounted) return;
         
-        console.log('AuthContext: Auth state integrado changed', { event, userId: session?.user?.id });
+        console.log('AuthContext: Auth state integrado changed', { event, userId: session?.user?.id, hasSession: !!session });
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -208,7 +208,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSession(null);
   };
 
-  const isAuthenticated = !!session?.user;
+  const isAuthenticated = !!session?.user && !!usuario;
+  
+  console.log('AuthContext isAuthenticated:', { 
+    hasSession: !!session, 
+    hasUser: !!session?.user, 
+    hasUsuario: !!usuario, 
+    isAuthenticated 
+  });
 
   return (
     <AuthContext.Provider value={{
