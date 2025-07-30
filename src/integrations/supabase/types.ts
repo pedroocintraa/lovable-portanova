@@ -498,6 +498,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_usuario_por_email: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
