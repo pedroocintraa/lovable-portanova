@@ -62,82 +62,105 @@ class SupabaseService {
         throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.');
       }
 
-      // 5. Criar endereço
-      console.log('📝 SupabaseService: Criando endereço...');
-      const { data: endereco, error: enderecoError } = await clienteParaUsar
-        .from('enderecos')
-        .insert({
-          cep: vendaData.cliente.endereco.cep,
-          logradouro: vendaData.cliente.endereco.logradouro,
-          numero: vendaData.cliente.endereco.numero,
-          complemento: vendaData.cliente.endereco.complemento,
-          bairro: vendaData.cliente.endereco.bairro,
-          localidade: vendaData.cliente.endereco.localidade,
-          uf: vendaData.cliente.endereco.uf
-        })
-        .select()
-        .single();
+      // 5. Preparar dados do cliente  
+      console.log('📝 SupabaseService: Preparando dados do cliente...');
+      const clienteData = {
+        nome: vendaData.cliente.nome.toUpperCase(),
+        cpf: vendaData.cliente.cpf,
+        telefone: vendaData.cliente.telefone,
+        email: vendaData.cliente.email || null,
+        data_nascimento: vendaData.cliente.dataNascimento || null,
+        vendedor_id: user.id
+      };
 
-      if (enderecoError) {
-        console.error('❌ Erro ao criar endereço:', enderecoError);
-        throw new Error(`Erro ao criar endereço: ${enderecoError.message}`);
-      }
-      
-      console.log('✅ Endereço criado com sucesso:', endereco.id);
+      // 6. Preparar dados do endereço
+      console.log('📝 SupabaseService: Preparando dados do endereço...');
+      const enderecoData = {
+        cep: vendaData.cliente.endereco.cep,
+        logradouro: vendaData.cliente.endereco.logradouro.toUpperCase(),
+        numero: vendaData.cliente.endereco.numero,
+        complemento: vendaData.cliente.endereco.complemento?.toUpperCase() || null,
+        bairro: vendaData.cliente.endereco.bairro.toUpperCase(),
+        localidade: vendaData.cliente.endereco.localidade.toUpperCase(),
+        uf: vendaData.cliente.endereco.uf.toUpperCase()
+      };
 
-      // 6. Criar cliente
-      console.log('📝 SupabaseService: Criando cliente...');
-      const { data: cliente, error: clienteError } = await clienteParaUsar
+      // 7. Inserir cliente
+      console.log('💾 SupabaseService: Salvando cliente...');
+      const { data: clienteInserido, error: clienteError } = await clienteParaUsar
         .from('clientes')
-        .insert({
-          nome: vendaData.cliente.nome.toUpperCase(),
-          telefone: vendaData.cliente.telefone,
-          email: vendaData.cliente.email,
-          cpf: vendaData.cliente.cpf,
-          data_nascimento: vendaData.cliente.dataNascimento,
-          endereco_id: endereco.id
-        })
+        .insert(clienteData)
         .select()
         .single();
 
       if (clienteError) {
-        console.error('❌ Erro ao criar cliente:', clienteError);
-        throw new Error(`Erro ao criar cliente: ${clienteError.message}`);
+        console.error('❌ Erro ao salvar cliente:', clienteError);
+        throw new Error(`Erro ao salvar cliente: ${clienteError.message}`);
       }
       
-      console.log('✅ Cliente criado com sucesso:', cliente.id);
+      console.log('✅ Cliente salvo:', clienteInserido);
 
-      // 7. Criar venda
-      console.log('📝 SupabaseService: Criando venda...');
-      const { data: venda, error: vendaError } = await clienteParaUsar
+      // 8. Inserir endereço
+      console.log('🏠 SupabaseService: Salvando endereço...');
+      const { data: enderecoInserido, error: enderecoError } = await clienteParaUsar
+        .from('enderecos')
+        .insert(enderecoData)
+        .select()
+        .single();
+
+      if (enderecoError) {
+        console.error('❌ Erro ao salvar endereço:', enderecoError);
+        throw new Error(`Erro ao salvar endereço: ${enderecoError.message}`);
+      }
+      
+      console.log('✅ Endereço salvo:', enderecoInserido);
+
+      // 9. Atualizar cliente com endereço
+      console.log('🔄 SupabaseService: Atualizando cliente com endereço...');
+      const { error: updateClienteError } = await clienteParaUsar
+        .from('clientes')
+        .update({ endereco_id: enderecoInserido.id })
+        .eq('id', clienteInserido.id);
+
+      if (updateClienteError) {
+        console.error('❌ Erro ao atualizar cliente com endereço:', updateClienteError);
+        throw new Error(`Erro ao atualizar cliente: ${updateClienteError.message}`);
+      }
+
+      // 10. Inserir venda
+      console.log('📋 SupabaseService: Salvando venda...');
+      const vendaParaInserir = {
+        cliente_id: clienteInserido.id,
+        plano_id: vendaData.planoId,
+        dia_vencimento: vendaData.diaVencimento,
+        data_instalacao: vendaData.dataInstalacao,
+        observacoes: vendaData.observacoes?.toUpperCase() || null,
+        vendedor_id: user.id,
+        vendedor_nome: usuarioData.nome,
+        status: 'pendente' as const
+      };
+
+      const { data: vendaInserida, error: vendaError } = await clienteParaUsar
         .from('vendas')
-        .insert({
-          cliente_id: cliente.id,
-          vendedor_id: user.id,
-          vendedor_nome: usuarioData.nome,
-          plano_id: vendaData.planoId,
-          dia_vencimento: vendaData.diaVencimento,
-          data_instalacao: vendaData.dataInstalacao,
-          observacoes: vendaData.observacoes,
-          status: 'pendente'
-        })
+        .insert(vendaParaInserir)
         .select()
         .single();
 
       if (vendaError) {
-        console.error('❌ Erro ao criar venda:', vendaError);
-        throw new Error(`Erro ao criar venda: ${vendaError.message}`);
+        console.error('❌ Erro ao salvar venda:', vendaError);
+        throw new Error(`Erro ao salvar venda: ${vendaError.message}`);
       }
       
-      console.log('✅ Venda criada com sucesso:', venda.id);
+      console.log('✅ Venda salva:', vendaInserida);
 
-      // 8. Salvar documentos (se existirem)
-      if (vendaData.documentos) {
+      // 11. Salvar documentos (se existirem)
+      if (vendaData.documentos && Object.keys(vendaData.documentos).length > 0) {
         console.log('📎 SupabaseService: Salvando documentos...');
-        await this.salvarDocumentos(venda.id, vendaData.documentos);
+        await this.salvarDocumentos(vendaInserida.id, vendaData.documentos);
+        console.log('✅ Documentos salvos');
       }
 
-      console.log('🎉 Venda salva com sucesso no Supabase!', venda.id);
+      console.log('🎉 Venda cadastrada com sucesso!', vendaInserida.id);
     } catch (error: any) {
       console.error('❌ Erro completo ao salvar venda:', error);
       throw new Error(error.message || 'Falha ao salvar venda');
