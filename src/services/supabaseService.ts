@@ -5,7 +5,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Venda, VendaFormData, Cliente, Endereco, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
-import { ensureAuthenticated } from "@/utils/authUtils";
+import { ensureAuthenticated, ensureValidToken } from "@/utils/authUtils";
 
 class SupabaseService {
   
@@ -14,13 +14,15 @@ class SupabaseService {
    */
   async salvarVenda(vendaData: VendaFormData): Promise<void> {
     try {
-      // Verificar autenticação usando utilitário
-      const authData = await ensureAuthenticated();
-      if (!authData) {
-        throw new Error('Falha na verificação de autenticação');
-      }
+      // Verificar e garantir token JWT válido antes das operações
+      const authData = await ensureValidToken();
+      const { user, session } = authData;
       
-      const { user } = authData;
+      console.log('🔍 SupabaseService: Token JWT validado:', {
+        userId: user.id,
+        hasAccessToken: !!session.access_token,
+        sessionExpiry: session.expires_at
+      });
 
       // Verificar se o usuário existe na tabela usuarios
       const { data: usuarioData } = await supabase

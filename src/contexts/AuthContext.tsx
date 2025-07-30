@@ -44,7 +44,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       (event, session) => {
         if (!mounted) return;
         
-        console.log('AuthContext: Auth state integrado changed', { event, userId: session?.user?.id, hasSession: !!session });
+        console.log('AuthContext: Auth state integrado changed', { 
+          event, 
+          userId: session?.user?.id, 
+          hasSession: !!session,
+          hasAccessToken: !!session?.access_token,
+          expiresAt: session?.expires_at
+        });
         
         setSession(session);
         setUser(session?.user ?? null);

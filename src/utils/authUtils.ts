@@ -51,3 +51,49 @@ export const ensureAuthenticated = async (): Promise<{ user: any; session: any }
     session: authState.session
   };
 };
+
+export const ensureValidToken = async (): Promise<{ user: any; session: any }> => {
+  console.log('🔄 AuthUtils: Verificando e renovando token JWT...');
+  
+  // Primeiro, tentar obter a sessão atual
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (!session) {
+    console.error('❌ AuthUtils: Nenhuma sessão ativa encontrada');
+    throw new Error('Sessão não encontrada. Faça login novamente.');
+  }
+  
+  console.log('🔍 AuthUtils: Sessão encontrada:', {
+    userId: session.user?.id,
+    hasAccessToken: !!session.access_token,
+    hasRefreshToken: !!session.refresh_token,
+    expiresAt: session.expires_at
+  });
+  
+  // Verificar se o token ainda é válido (expira em menos de 5 minutos)
+  const now = Math.floor(Date.now() / 1000);
+  const tokenExpiresIn = (session.expires_at || 0) - now;
+  
+  if (tokenExpiresIn < 300) { // Menos de 5 minutos
+    console.log('🔄 AuthUtils: Token próximo do vencimento, renovando...');
+    
+    const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+    
+    if (refreshError || !refreshedSession.session) {
+      console.error('❌ AuthUtils: Erro ao renovar token:', refreshError);
+      throw new Error('Falha na renovação do token. Faça login novamente.');
+    }
+    
+    console.log('✅ AuthUtils: Token renovado com sucesso');
+    return {
+      user: refreshedSession.session.user,
+      session: refreshedSession.session
+    };
+  }
+  
+  console.log('✅ AuthUtils: Token válido');
+  return {
+    user: session.user,
+    session: session
+  };
+};
