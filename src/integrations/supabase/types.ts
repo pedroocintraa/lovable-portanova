@@ -451,6 +451,15 @@ export type Database = {
         Args: { p_ip: unknown; p_email: string }
         Returns: boolean
       }
+      debug_auth_context: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auth_uid: string
+          auth_email: string
+          get_usuario_atual_result: string
+          usuario_exists: boolean
+        }[]
+      }
       get_equipe_usuario_atual: {
         Args: Record<PropertyKey, never>
         Returns: string

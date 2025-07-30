@@ -55,7 +55,7 @@ export const ensureAuthenticated = async (): Promise<{ user: any; session: any }
 export const ensureValidToken = async (): Promise<{ user: any; session: any }> => {
   console.log('🔄 AuthUtils: Verificando e renovando token JWT...');
   
-  // Primeiro, tentar obter a sessão atual
+  // Forçar uma nova verificação da sessão
   const { data: { session }, error } = await supabase.auth.getSession();
   
   if (!session) {
@@ -65,35 +65,36 @@ export const ensureValidToken = async (): Promise<{ user: any; session: any }> =
   
   console.log('🔍 AuthUtils: Sessão encontrada:', {
     userId: session.user?.id,
+    userEmail: session.user?.email,
     hasAccessToken: !!session.access_token,
     hasRefreshToken: !!session.refresh_token,
-    expiresAt: session.expires_at
+    expiresAt: session.expires_at,
+    tokenLength: session.access_token?.length
   });
   
-  // Verificar se o token ainda é válido (expira em menos de 5 minutos)
-  const now = Math.floor(Date.now() / 1000);
-  const tokenExpiresIn = (session.expires_at || 0) - now;
+  // Sempre renovar o token para garantir que seja válido
+  console.log('🔄 AuthUtils: Forçando renovação do token para garantir validade...');
   
-  if (tokenExpiresIn < 300) { // Menos de 5 minutos
-    console.log('🔄 AuthUtils: Token próximo do vencimento, renovando...');
-    
-    const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
-    
-    if (refreshError || !refreshedSession.session) {
-      console.error('❌ AuthUtils: Erro ao renovar token:', refreshError);
-      throw new Error('Falha na renovação do token. Faça login novamente.');
-    }
-    
-    console.log('✅ AuthUtils: Token renovado com sucesso');
+  const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+  
+  if (refreshError || !refreshedSession.session) {
+    console.error('❌ AuthUtils: Erro ao renovar token:', refreshError);
+    // Se a renovação falhar, tentar usar a sessão atual
+    console.log('⚠️ AuthUtils: Tentando usar sessão atual como fallback');
     return {
-      user: refreshedSession.session.user,
-      session: refreshedSession.session
+      user: session.user,
+      session: session
     };
   }
   
-  console.log('✅ AuthUtils: Token válido');
+  console.log('✅ AuthUtils: Token renovado com sucesso:', {
+    newUserId: refreshedSession.session.user.id,
+    newTokenLength: refreshedSession.session.access_token?.length,
+    newExpiresAt: refreshedSession.session.expires_at
+  });
+  
   return {
-    user: session.user,
-    session: session
+    user: refreshedSession.session.user,
+    session: refreshedSession.session
   };
 };

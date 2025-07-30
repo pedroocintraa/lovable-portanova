@@ -6,6 +6,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Venda, VendaFormData, Cliente, Endereco, DocumentoAnexado, DocumentosVenda } from "@/types/venda";
 import { ensureAuthenticated, ensureValidToken } from "@/utils/authUtils";
+import { createAuthenticatedSupabaseClient, forceAuthContext } from "@/utils/supabaseClientAuth";
 
 class SupabaseService {
   
@@ -24,8 +25,16 @@ class SupabaseService {
         sessionExpiry: session.expires_at
       });
 
+      // Criar cliente autenticado com token forçado
+      const authenticatedClient = await createAuthenticatedSupabaseClient(session);
+      await forceAuthContext(authenticatedClient, session);
+
+      // Debug do contexto de autenticação no banco
+      const { data: debugAuth, error: debugError } = await authenticatedClient.rpc('debug_auth_context');
+      console.log('🔍 SupabaseService: Debug contexto auth no banco:', { debugAuth, debugError });
+
       // Verificar se o usuário existe na tabela usuarios
-      const { data: usuarioData } = await supabase
+      const { data: usuarioData } = await authenticatedClient
         .from('usuarios')
         .select('id, nome')
         .eq('id', user.id)
@@ -37,9 +46,9 @@ class SupabaseService {
         throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.');
       }
 
-      // 1. Criar endereço
-      console.log('📝 SupabaseService: Tentando criar endereço...');
-      const { data: endereco, error: enderecoError } = await supabase
+      // 1. Criar endereço usando cliente autenticado
+      console.log('📝 SupabaseService: Tentando criar endereço com cliente autenticado...');
+      const { data: endereco, error: enderecoError } = await authenticatedClient
         .from('enderecos')
         .insert({
           cep: vendaData.cliente.endereco.cep,
@@ -62,7 +71,7 @@ class SupabaseService {
 
       // 2. Criar cliente
       console.log('📝 SupabaseService: Tentando criar cliente...');
-      const { data: cliente, error: clienteError } = await supabase
+      const { data: cliente, error: clienteError } = await authenticatedClient
         .from('clientes')
         .insert({
           nome: vendaData.cliente.nome.toUpperCase(),
@@ -83,7 +92,7 @@ class SupabaseService {
       console.log('✅ Cliente criado:', cliente.id);
 
       // 3. Usar dados do usuário já verificados
-      const { data: vendedor } = await supabase
+      const { data: vendedor } = await authenticatedClient
         .from('usuarios')
         .select('nome, equipe_id')
         .eq('id', user.id)
@@ -91,7 +100,7 @@ class SupabaseService {
 
       // 4. Criar venda
       console.log('📝 SupabaseService: Tentando criar venda...');
-      const { data: venda, error: vendaError } = await supabase
+      const { data: venda, error: vendaError } = await authenticatedClient
         .from('vendas')
         .insert({
           cliente_id: cliente.id,
