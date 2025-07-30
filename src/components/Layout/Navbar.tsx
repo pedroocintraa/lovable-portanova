@@ -89,7 +89,7 @@ export const Navbar = () => {
               <img 
                 src={saTelecomLogo} 
                 alt="SA TELECOM" 
-                className="h-8 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
               <span className="text-xl font-bold text-foreground">
                 CRM

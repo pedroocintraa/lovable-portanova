@@ -69,7 +69,7 @@ export default function Login() {
             <img 
               src={saTelecomLogo} 
               alt="SA TELECOM" 
-              className="h-16 w-auto object-contain"
+              className="h-24 w-auto object-contain"
             />
           </div>
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
