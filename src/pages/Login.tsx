@@ -6,13 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { MigrationPanel } from '@/components/MigrationPanel';
 // import saTelecomLogo from '@/assets/sa-telecom-logo.png';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showMigrationPanel, setShowMigrationPanel] = useState(false);
   const {
     login,
     isAuthenticated,
@@ -60,8 +62,14 @@ export default function Login() {
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>;
   }
-  return <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md mx-4">
+  return <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-2xl space-y-6">
+        {/* Painel de Migração */}
+        {showMigrationPanel && (
+          <MigrationPanel />
+        )}
+        
+        <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
             <img src="/lovable-uploads/c25efcbd-b42b-48b3-9e82-db0628ef0cbc.png" alt="SA TELECOM" className="h-40 object-contain" />
@@ -73,6 +81,23 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Botão de Migração de Emergência */}
+            {!showMigrationPanel && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Problemas com login? Pode ser necessário migração.</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowMigrationPanel(true)}
+                  >
+                    Migração
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {error && <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>}
@@ -95,6 +120,7 @@ export default function Login() {
             </Button>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>;
 }
