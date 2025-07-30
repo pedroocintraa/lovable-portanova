@@ -47,9 +47,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Buscar dados do usuário de forma assíncrona
+        // Buscar dados do usuário de forma SÍNCRONA (sem setTimeout)
         if (session?.user) {
-          setTimeout(async () => {
+          // Função assíncrona para buscar dados do usuário
+          const fetchUserData = async () => {
             if (!mounted) return;
             
             try {
@@ -105,7 +106,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 setLoading(false);
               }
             }
-          }, 0);
+          };
+          
+          // Executar imediatamente (sem delay)
+          fetchUserData();
         } else {
           // Sem sessão - limpar tudo
           setUsuario(null);

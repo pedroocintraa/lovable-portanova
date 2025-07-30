@@ -11,53 +11,95 @@ import { createAuthenticatedSupabaseClient, forceAuthContext } from "@/utils/sup
 class SupabaseService {
   
   /**
+   * Verificação robusta do contexto de autenticação
+   */
+  private async verifyAuthenticationContext(): Promise<{
+    valid: boolean;
+    error?: string;
+    details?: any;
+  }> {
+    try {
+      // 1. Verificar sessão ativa
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        return { valid: false, error: `Erro de sessão: ${sessionError.message}` };
+      }
+      
+      if (!session?.user) {
+        return { valid: false, error: 'Sessão não encontrada' };
+      }
+      
+      // 2. Verificar contexto de auth no backend
+      const { data: authContext, error: authError } = await supabase.rpc('debug_auth_context');
+      
+      if (authError) {
+        return { valid: false, error: `Erro no contexto: ${authError.message}` };
+      }
+      
+      const context = authContext?.[0];
+      
+      if (!context?.auth_email) {
+        // Tentar refresh da sessão uma vez
+        console.log('🔄 SupabaseService: Tentando refresh da sessão...');
+        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshedSession.session) {
+          return { valid: false, error: 'Falha no refresh da sessão' };
+        }
+        
+        // Verificar novamente após refresh
+        const { data: newAuthContext } = await supabase.rpc('debug_auth_context');
+        const newContext = newAuthContext?.[0];
+        
+        if (!newContext?.auth_email) {
+          return { valid: false, error: 'auth.email() ainda está null após refresh' };
+        }
+        
+        return { 
+          valid: true, 
+          details: { 
+            refreshed: true, 
+            authEmail: newContext.auth_email,
+            authUid: newContext.auth_uid 
+          } 
+        };
+      }
+      
+      return { 
+        valid: true, 
+        details: { 
+          authEmail: context.auth_email,
+          authUid: context.auth_uid 
+        } 
+      };
+      
+    } catch (error: any) {
+      return { valid: false, error: `Erro inesperado: ${error.message}` };
+    }
+  }
+  
+  /**
    * Salva uma nova venda no Supabase
    */
   async salvarVenda(vendaData: VendaFormData): Promise<void> {
     console.log('🚀 SupabaseService: Iniciando salvamento de venda...');
     
     try {
-      // 1. Verificar sessão atual
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // 1. Verificação robusta de autenticação
+      const authVerification = await this.verifyAuthenticationContext();
       
-      if (sessionError || !session) {
-        console.error('❌ SupabaseService: Erro de sessão:', sessionError);
-        throw new Error('Sessão expirada. Faça login novamente.');
+      if (!authVerification.valid) {
+        throw new Error(`Erro de autenticação: ${authVerification.error}`);
       }
 
-      console.log('✅ SupabaseService: Sessão válida encontrada');
-      
-      // 2. Testar contexto de autenticação
-      const { data: authTest, error: authTestError } = await supabase.rpc('debug_auth_context');
-      console.log('🔍 SupabaseService: Teste de autenticação:', { authTest, authTestError });
-      
-      if (!authTest?.[0]?.auth_uid) {
-        console.warn('⚠️ SupabaseService: auth.uid() está null, tentando refresh...');
-        
-        // Tentar refresh da sessão
-        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshedSession.session) {
-          console.error('❌ SupabaseService: Falha no refresh:', refreshError);
-          throw new Error('Falha na autenticação. Faça logout e login novamente.');
-        }
-        
-        console.log('🔄 SupabaseService: Sessão atualizada');
-        
-        // Testar novamente
-        const { data: newAuthTest } = await supabase.rpc('debug_auth_context');
-        console.log('🔍 SupabaseService: Teste após refresh:', newAuthTest);
-        
-        if (!newAuthTest?.[0]?.auth_uid) {
-          throw new Error('Problema de autenticação persistente. Contate o suporte.');
-        }
-      }
+      console.log('✅ SupabaseService: Contexto de autenticação válido:', authVerification.details);
 
-      // 3. Verificar usuário na tabela usuarios
+      // 2. Verificar usuário na tabela usuarios usando o email do contexto válido
       const { data: usuarioData, error: usuarioError } = await supabase
         .from('usuarios')
         .select('id, nome, email, ativo')
-        .eq('email', session.user.email)
+        .eq('email', authVerification.details.authEmail)
         .eq('ativo', true)
         .single();
         
