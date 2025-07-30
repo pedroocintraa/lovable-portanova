@@ -16,10 +16,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 4.9%;
 
-    /* Azul corporativo principal */
-    --primary: 214 84% 56%;
+    /* Azul corporativo SA TELECOM */
+    --primary: 220 91% 42%; /* #0D4BCB */
     --primary-foreground: 0 0% 98%;
-    --primary-light: 214 95% 93%;
+    --primary-light: 220 91% 93%;
 
     /* Cinza secundário */
     --secondary: 210 20% 96%;
@@ -38,7 +38,7 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 214 84% 56%;
+    --accent: 220 91% 42%; /* SA TELECOM primary */
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84% 60%;
@@ -46,12 +46,12 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 214 84% 56%;
+    --ring: 220 91% 42%; /* SA TELECOM primary */
 
     --radius: 0.75rem;
 
-    /* Gradientes corporativos */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(214 84% 46%));
+    /* Gradientes corporativos SA TELECOM */
+    --gradient-primary: linear-gradient(135deg, hsl(220 91% 42%), hsl(220 91% 25%)); /* #0D4BCB para #042C7E */
     --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 76% 30%));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 98%));
 

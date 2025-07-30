@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
-  BarChart3, 
   Users, 
   Menu, 
   X,
@@ -24,6 +23,7 @@ import {
   Lock,
   ChevronDown
 } from "lucide-react";
+import saTelecomLogo from '@/assets/sa-telecom-logo.png';
 
 /**
  * Componente de navegação principal do CRM
@@ -85,12 +85,14 @@ export const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="bg-gradient-primary p-2 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-primary-foreground" />
-              </div>
+            <Link to="/" className="flex items-center space-x-3">
+              <img 
+                src={saTelecomLogo} 
+                alt="SA TELECOM" 
+                className="h-8 w-auto object-contain"
+              />
               <span className="text-xl font-bold text-foreground">
-                CRM Vendas
+                CRM
               </span>
             </Link>
           </div>
