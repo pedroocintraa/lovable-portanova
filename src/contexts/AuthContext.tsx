@@ -31,17 +31,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
     
-    // Timeout de segurança reduzido para evitar loading infinito
-    const safetyTimeout = setTimeout(() => {
-      if (mounted) {
-        console.log('AuthContext: Timeout de segurança ativado - finalizando loading');
-        setLoading(false);
-      }
-    }, 5000); // Reduzido para 5 segundos
-    
-    // Configurar listener de autenticação
+    // Configurar listener de autenticação PRIMEIRO
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return;
         
         console.log('AuthContext: Auth state changed', { 
@@ -51,66 +43,71 @@ export function AuthProvider({ children }: AuthProviderProps) {
           userEmail: session?.user?.email
         });
         
-        // Atualizar estados imediatamente
+        // Atualizar estados da sessão imediatamente (síncrono)
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Buscar dados do usuário de forma assíncrona
         if (session?.user) {
-          try {
-            console.log('AuthContext: Buscando dados do usuário:', session.user.id);
+          setTimeout(async () => {
+            if (!mounted) return;
             
-            // Primeiro tentar por ID
-            let userData = await usuariosService.obterUsuarioPorId(session.user.id);
-            
-            // Se não encontrar por ID, tentar por email
-            if (!userData && session.user.email) {
-              console.log('AuthContext: Usuário não encontrado por ID, tentando por email');
-              const { data: usuarioByEmail } = await supabase
-                .from('usuarios')
-                .select('*')
-                .eq('email', session.user.email)
-                .eq('ativo', true)
-                .single();
+            try {
+              console.log('AuthContext: Buscando dados do usuário:', session.user.id);
               
-              if (usuarioByEmail) {
-                // Transformar dados do Supabase para o formato Usuario
-                userData = {
-                  id: usuarioByEmail.id,
-                  nome: usuarioByEmail.nome,
-                  telefone: usuarioByEmail.telefone,
-                  email: usuarioByEmail.email,
-                  cpf: usuarioByEmail.cpf,
-                  funcao: usuarioByEmail.funcao as FuncaoUsuario,
-                  dataCadastro: usuarioByEmail.data_cadastro || usuarioByEmail.created_at,
-                  ativo: usuarioByEmail.ativo,
-                  equipeId: usuarioByEmail.equipe_id,
-                  supervisorEquipeId: usuarioByEmail.supervisor_equipe_id,
-                  nomeEquipe: undefined // Será buscado se necessário
-                };
+              // Primeiro tentar por ID
+              let userData = await usuariosService.obterUsuarioPorId(session.user.id);
+              
+              // Se não encontrar por ID, tentar por email
+              if (!userData && session.user.email) {
+                console.log('AuthContext: Usuário não encontrado por ID, tentando por email');
+                const { data: usuarioByEmail } = await supabase
+                  .from('usuarios')
+                  .select('*')
+                  .eq('email', session.user.email)
+                  .eq('ativo', true)
+                  .single();
+                
+                if (usuarioByEmail) {
+                  userData = {
+                    id: usuarioByEmail.id,
+                    nome: usuarioByEmail.nome,
+                    telefone: usuarioByEmail.telefone,
+                    email: usuarioByEmail.email,
+                    cpf: usuarioByEmail.cpf,
+                    funcao: usuarioByEmail.funcao as FuncaoUsuario,
+                    dataCadastro: usuarioByEmail.data_cadastro || usuarioByEmail.created_at,
+                    ativo: usuarioByEmail.ativo,
+                    equipeId: usuarioByEmail.equipe_id,
+                    supervisorEquipeId: usuarioByEmail.supervisor_equipe_id,
+                    nomeEquipe: undefined
+                  };
+                }
+              }
+              
+              if (userData && mounted) {
+                console.log('AuthContext: Usuário encontrado:', userData.nome);
+                setUsuario(userData);
+                setPermissoes(usuariosService.obterPermissoes(userData.funcao));
+              } else if (mounted) {
+                console.warn('AuthContext: Usuário auth existe mas não na tabela usuarios.');
+                setUsuario(null);
+                setPermissoes(null);
+              }
+            } catch (error) {
+              console.error('AuthContext: Erro ao carregar dados do usuário:', error);
+              if (mounted) {
+                setUsuario(null);
+                setPermissoes(null);
+              }
+            } finally {
+              if (mounted) {
+                setLoading(false);
               }
             }
-            
-            if (userData && mounted) {
-              console.log('AuthContext: Usuário encontrado:', userData.nome);
-              setUsuario(userData);
-              setPermissoes(usuariosService.obterPermissoes(userData.funcao));
-            } else if (mounted) {
-              console.warn('AuthContext: Usuário auth existe mas não na tabela usuarios.');
-              setUsuario(null);
-              setPermissoes(null);
-            }
-          } catch (error) {
-            console.error('AuthContext: Erro ao carregar dados do usuário:', error);
-            if (mounted) {
-              setUsuario(null);
-              setPermissoes(null);
-            }
-          } finally {
-            if (mounted) {
-              setLoading(false);
-            }
-          }
+          }, 0);
         } else {
+          // Sem sessão - limpar tudo
           setUsuario(null);
           setPermissoes(null);
           setLoading(false);
@@ -118,49 +115,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     );
 
-    // Verificar sessão existente
-    const initializeAuth = async () => {
-      try {
-        console.log('AuthContext: Verificando sessão inicial');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('AuthContext: Erro ao verificar sessão:', error);
-          if (mounted) {
-            setLoading(false);
-          }
-          return;
-        }
-        
-        if (!mounted) return;
-        
-        console.log('AuthContext: Sessão inicial:', { 
+    // DEPOIS verificar sessão existente
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        console.log('AuthContext: Sessão inicial verificada:', { 
           hasSession: !!session, 
-          userId: session?.user?.id,
-          userEmail: session?.user?.email 
+          userId: session?.user?.id 
         });
         
         if (!session) {
-          setSession(null);
-          setUser(null);
-          setUsuario(null);
-          setPermissoes(null);
           setLoading(false);
         }
-        // Se tem sessão, o onAuthStateChange já vai lidar com ela
-      } catch (error) {
-        console.error('AuthContext: Erro ao verificar sessão inicial:', error);
-        if (mounted) {
-          setLoading(false);
-        }
+        // Se tem sessão, o onAuthStateChange já vai processar
       }
-    };
-
-    initializeAuth();
+    });
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);

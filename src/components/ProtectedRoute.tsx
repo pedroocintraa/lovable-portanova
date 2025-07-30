@@ -8,34 +8,17 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading, usuario } = useAuth();
-  const [localLoading, setLocalLoading] = React.useState(true);
-
-  // Timeout de segurança mais curto
-  React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.log('ProtectedRoute: Timeout local ativado');
-      setLocalLoading(false);
-    }, 3000); // Reduzido para 3 segundos
-
-    if (!loading) {
-      setLocalLoading(false);
-    }
-
-    return () => clearTimeout(timeout);
-  }, [loading]);
-
-  const isLoading = loading || localLoading;
+  const { isAuthenticated, loading, usuario, session } = useAuth();
 
   console.log('ProtectedRoute:', { 
     isAuthenticated, 
     loading, 
-    localLoading, 
-    isLoading,
-    hasUsuario: !!usuario
+    hasUsuario: !!usuario,
+    hasSession: !!session
   });
 
-  if (isLoading) {
+  // Loading state - só mostra se realmente está carregando
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -46,14 +29,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // Se não está autenticado, redireciona para login
   if (!isAuthenticated) {
     console.log('ProtectedRoute: Redirecionando para login - usuário não autenticado');
-    return <Navigate to="/login" replace />;
-  }
-
-  // Verificação adicional se o usuário está carregado
-  if (!usuario) {
-    console.log('ProtectedRoute: Dados do usuário não carregados, redirecionando para login');
     return <Navigate to="/login" replace />;
   }
 
