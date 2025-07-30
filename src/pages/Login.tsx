@@ -13,8 +13,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const {
+    login,
+    isAuthenticated,
+    loading: authLoading
+  } = useAuth();
   const navigate = useNavigate();
 
   // Redirecionar se já estiver autenticado
@@ -23,15 +26,14 @@ export default function Login() {
       navigate('/');
     }
   }, [isAuthenticated, authLoading, navigate]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      const { error } = await login(email, password);
-      
+      const {
+        error
+      } = await login(email, password);
       if (error) {
         // Provide more specific error messages
         if (error.message?.includes('tentativas')) {
@@ -54,23 +56,15 @@ export default function Login() {
 
   // Mostrar loading enquanto verifica autenticação
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+  return <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-6">
-            <img 
-              src="/lovable-uploads/5050fb87-993c-4bfb-a09d-e936a7f7a0b6.png" 
-              alt="SA TELECOM" 
-              className="h-30 w-auto object-contain"
-            />
+            <img src="/lovable-uploads/5050fb87-993c-4bfb-a09d-e936a7f7a0b6.png" alt="SA TELECOM" className="max-h-52 " />
           </div>
           <CardTitle className="text-2xl font-bold">Login</CardTitle>
           <CardDescription>
@@ -79,55 +73,28 @@ export default function Login() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
+            {error && <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+              </Alert>}
             
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-                disabled={loading}
-              />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required disabled={loading} />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Sua senha"
-                required
-                disabled={loading}
-              />
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" required disabled={loading} />
             </div>
             
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Entrando...
-                </>
-              ) : (
-                'Entrar'
-              )}
+                </> : 'Entrar'}
             </Button>
           </form>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 }
