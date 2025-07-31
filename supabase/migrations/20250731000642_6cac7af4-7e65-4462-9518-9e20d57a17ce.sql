@@ -20,8 +20,8 @@ BEGIN
   
   IF user_id IS NOT NULL THEN
     -- Verificar se o usuário existe na tabela usuarios pelo user_id
-    IF EXISTS(SELECT 1 FROM public.usuarios WHERE user_id = auth.uid() AND ativo = true) THEN
-      RETURN (SELECT id FROM public.usuarios WHERE user_id = auth.uid() AND ativo = true LIMIT 1);
+    IF EXISTS(SELECT 1 FROM public.usuarios WHERE usuarios.user_id = auth.uid() AND usuarios.ativo = true) THEN
+      RETURN (SELECT id FROM public.usuarios WHERE usuarios.user_id = auth.uid() AND usuarios.ativo = true LIMIT 1);
     END IF;
   END IF;
   
@@ -101,19 +101,19 @@ FOR SELECT USING (
 CREATE POLICY "usuarios_select_supervisor_uid" ON public.usuarios
 FOR SELECT USING (
   EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao = 'SUPERVISOR' AND u.ativo = true)
-  AND (funcao IN ('SUPERVISOR_EQUIPE', 'VENDEDOR') OR user_id = auth.uid())
+  AND (funcao IN ('SUPERVISOR_EQUIPE', 'VENDEDOR') OR usuarios.user_id = auth.uid())
 );
 
 CREATE POLICY "usuarios_select_supervisor_equipe_uid" ON public.usuarios
 FOR SELECT USING (
   EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao = 'SUPERVISOR_EQUIPE' AND u.ativo = true)
-  AND (equipe_id = (SELECT equipe_id FROM public.usuarios WHERE user_id = auth.uid()) OR user_id = auth.uid())
+  AND (equipe_id = (SELECT equipe_id FROM public.usuarios WHERE usuarios.user_id = auth.uid()) OR usuarios.user_id = auth.uid())
 );
 
 CREATE POLICY "usuarios_select_vendedor_uid" ON public.usuarios
 FOR SELECT USING (
   EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao = 'VENDEDOR' AND u.ativo = true)
-  AND user_id = auth.uid()
+  AND usuarios.user_id = auth.uid()
 );
 
 CREATE POLICY "usuarios_insert_admin_uid" ON public.usuarios
@@ -142,13 +142,13 @@ FOR UPDATE USING (
 CREATE POLICY "usuarios_update_supervisor_uid" ON public.usuarios
 FOR UPDATE USING (
   EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao = 'SUPERVISOR' AND u.ativo = true)
-  AND (funcao IN ('SUPERVISOR_EQUIPE', 'VENDEDOR') OR user_id = auth.uid())
+  AND (funcao IN ('SUPERVISOR_EQUIPE', 'VENDEDOR') OR usuarios.user_id = auth.uid())
 );
 
 CREATE POLICY "usuarios_update_supervisor_equipe_uid" ON public.usuarios
 FOR UPDATE USING (
   EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao = 'SUPERVISOR_EQUIPE' AND u.ativo = true)
-  AND (equipe_id = (SELECT equipe_id FROM public.usuarios WHERE user_id = auth.uid()) OR user_id = auth.uid())
+  AND (equipe_id = (SELECT equipe_id FROM public.usuarios WHERE usuarios.user_id = auth.uid()) OR usuarios.user_id = auth.uid())
 );
 
 CREATE POLICY "usuarios_update_vendedor_uid" ON public.usuarios

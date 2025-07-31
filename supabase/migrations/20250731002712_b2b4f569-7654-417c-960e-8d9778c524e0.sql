@@ -35,7 +35,7 @@ DECLARE
 BEGIN
   SELECT funcao INTO user_role
   FROM public.usuarios 
-  WHERE user_id = auth.uid() AND ativo = true
+  WHERE usuarios.user_id = auth.uid() AND usuarios.ativo = true
   LIMIT 1;
   
   RETURN user_role;
@@ -50,9 +50,9 @@ SET search_path TO 'public'
 AS $$
   SELECT EXISTS(
     SELECT 1 FROM public.usuarios 
-    WHERE user_id = auth.uid() 
-    AND funcao = 'ADMINISTRADOR_GERAL'::funcao_usuario 
-    AND ativo = true
+    WHERE usuarios.user_id = auth.uid() 
+    AND usuarios.funcao = 'ADMINISTRADOR_GERAL'::funcao_usuario 
+    AND usuarios.ativo = true
   );
 $$;
 
@@ -64,9 +64,9 @@ SET search_path TO 'public'
 AS $$
   SELECT EXISTS(
     SELECT 1 FROM public.usuarios 
-    WHERE user_id = auth.uid() 
-    AND funcao IN ('ADMINISTRADOR_GERAL'::funcao_usuario, 'SUPERVISOR'::funcao_usuario)
-    AND ativo = true
+    WHERE usuarios.user_id = auth.uid() 
+    AND usuarios.funcao IN ('ADMINISTRADOR_GERAL'::funcao_usuario, 'SUPERVISOR'::funcao_usuario)
+    AND usuarios.ativo = true
   );
 $$;
 
@@ -106,7 +106,7 @@ USING (
     WHERE v.id = documentos_venda.venda_id 
     AND (
       is_admin_or_supervisor_safe() OR 
-      v.vendedor_id = (SELECT id FROM usuarios WHERE user_id = auth.uid())
+      v.vendedor_id = (SELECT id FROM usuarios WHERE usuarios.user_id = auth.uid())
     )
   )
 );
@@ -119,7 +119,7 @@ USING (
     WHERE v.id = historico_vendas.venda_id 
     AND (
       is_admin_or_supervisor_safe() OR 
-      v.vendedor_id = (SELECT id FROM usuarios WHERE user_id = auth.uid())
+      v.vendedor_id = (SELECT id FROM usuarios WHERE usuarios.user_id = auth.uid())
     )
   )
 );

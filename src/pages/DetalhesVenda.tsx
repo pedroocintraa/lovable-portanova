@@ -1,17 +1,33 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { supabaseService } from "@/services/supabaseService";
+import { Venda } from "@/types/venda";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Eye, FileText, User, MapPin, Calendar, Phone, Mail, CreditCard, AlertTriangle } from "lucide-react";
-import { Venda, DocumentoAnexado } from "@/types/venda";
-import { supabaseService } from "@/services/supabaseService";
 import DocumentViewer from "@/components/DocumentViewer/DocumentViewer";
 import { StatusManager } from "@/components/StatusManager/StatusManager";
 import { StatusSelector } from "@/components/StatusSelector/StatusSelector";
-import { formatDateFromString } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  ArrowLeft, 
+  User, 
+  Phone, 
+  MapPin, 
+  FileText, 
+  Calendar, 
+  Eye, 
+  Download, 
+  Edit3,
+  Save,
+  X,
+  AlertTriangle
+} from "lucide-react";
+import { maskCPF, maskPhone, unmaskCPF, unmaskPhone, formatarDataBrasil, formatarDataNascimento } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const DetalhesVenda = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +35,12 @@ const DetalhesVenda = () => {
   const [venda, setVenda] = useState<Venda | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Estados para edição
+  const [editandoCliente, setEditandoCliente] = useState(false);
+  const [editandoEndereco, setEditandoEndereco] = useState(false);
+  const [dadosEditados, setDadosEditados] = useState<any>(null);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -82,7 +104,90 @@ const DetalhesVenda = () => {
   };
 
   const formatarData = (dataISO: string) => {
-    return new Date(dataISO).toLocaleString("pt-BR");
+    return formatarDataBrasil(dataISO);
+  };
+
+  // Funções para edição
+  const iniciarEdicaoCliente = () => {
+    setDadosEditados({
+      nome: venda?.cliente.nome || '',
+      cpf: maskCPF(venda?.cliente.cpf || ''),
+      telefone: maskPhone(venda?.cliente.telefone || ''),
+      email: venda?.cliente.email || '',
+      dataNascimento: venda?.cliente.dataNascimento || ''
+    });
+    setEditandoCliente(true);
+  };
+
+  const iniciarEdicaoEndereco = () => {
+    setDadosEditados({
+      cep: venda?.cliente.endereco.cep || '',
+      logradouro: venda?.cliente.endereco.logradouro || '',
+      numero: venda?.cliente.endereco.numero || '',
+      complemento: venda?.cliente.endereco.complemento || '',
+      bairro: venda?.cliente.endereco.bairro || '',
+      localidade: venda?.cliente.endereco.localidade || '',
+      uf: venda?.cliente.endereco.uf || ''
+    });
+    setEditandoEndereco(true);
+  };
+
+  const cancelarEdicao = () => {
+    setEditandoCliente(false);
+    setEditandoEndereco(false);
+    setDadosEditados(null);
+  };
+
+  const salvarAlteracoes = async () => {
+    if (!venda || !dadosEditados) return;
+
+    setSalvando(true);
+    try {
+      // Atualizar dados do cliente
+      if (editandoCliente) {
+        await supabaseService.atualizarDadosCliente(venda.id, {
+          nome: dadosEditados.nome.toUpperCase(),
+          cpf: unmaskCPF(dadosEditados.cpf),
+          telefone: unmaskPhone(dadosEditados.telefone),
+          email: dadosEditados.email,
+          dataNascimento: dadosEditados.dataNascimento
+        });
+      }
+
+      // Atualizar dados do endereço
+      if (editandoEndereco) {
+        await supabaseService.atualizarEnderecoCliente(venda.id, {
+          cep: dadosEditados.cep,
+          logradouro: dadosEditados.logradouro.toUpperCase(),
+          numero: dadosEditados.numero,
+          complemento: dadosEditados.complemento?.toUpperCase() || '',
+          bairro: dadosEditados.bairro.toUpperCase(),
+          localidade: dadosEditados.localidade.toUpperCase(),
+          uf: dadosEditados.uf.toUpperCase()
+        });
+      }
+
+      // Recarregar venda atualizada
+      const vendaAtualizada = await supabaseService.obterVendaCompleta(venda.id);
+      if (vendaAtualizada) {
+        setVenda(vendaAtualizada);
+      }
+
+      cancelarEdicao();
+      toast({
+        title: "Sucesso",
+        description: "Dados atualizados com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar alterações:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar as alterações.",
+        variant: "destructive",
+      });
+    } finally {
+      setSalvando(false);
+    }
   };
 
   // Função para atualizar status da venda
@@ -90,10 +195,15 @@ const DetalhesVenda = () => {
     novoStatus: Venda["status"],
     extraData?: { dataInstalacao?: string; motivoPerda?: string }
   ) => {
+    console.log('🔍 handleStatusChange chamado:', { novoStatus, extraData, vendaId: venda?.id });
+    
     if (!venda) return;
     
     try {
+      console.log('🔍 Chamando atualizarStatusVenda...');
       await supabaseService.atualizarStatusVenda(venda.id, novoStatus, extraData);
+      
+      console.log('🔍 Recarregando venda...');
       const vendaAtualizada = await supabaseService.obterVendaCompleta(venda.id);
       if (vendaAtualizada) {
         setVenda(vendaAtualizada);
@@ -103,7 +213,7 @@ const DetalhesVenda = () => {
         });
       }
     } catch (error) {
-      console.error("Erro ao atualizar status:", error);
+      console.error("❌ Erro ao atualizar status:", error);
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status da venda.",
@@ -133,7 +243,7 @@ const DetalhesVenda = () => {
       Object.entries(venda.documentos).forEach(([categoria, docs]) => {
         if (docs && docs.length > 0) {
           const pasta = zip.folder(categoria);
-          docs.forEach((doc: DocumentoAnexado) => {
+          docs.forEach((doc: any) => { // Assuming DocumentoAnexado type is not directly imported here, using 'any' for now
             // Converter base64 para blob
             const byteCharacters = atob(doc.conteudo.split(',')[1]);
             const byteNumbers = new Array(byteCharacters.length);
@@ -274,83 +384,251 @@ const DetalhesVenda = () => {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Dados do Cliente
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Dados do Cliente
+                </div>
+                {!editandoCliente ? (
+                  <Button variant="outline" size="sm" onClick={iniciarEdicaoCliente}>
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={cancelarEdicao} disabled={salvando}>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={salvarAlteracoes} disabled={salvando}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {salvando ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
-                  <p className="font-medium">{venda.cliente.nome}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">CPF</label>
-                  <p className="font-medium">{venda.cliente.cpf}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Data de Nascimento</label>
-                  <p className="font-medium">{new Date(venda.cliente.dataNascimento).toLocaleDateString("pt-BR")}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <p className="font-medium">{venda.cliente.email}</p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div>
-                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2 mb-2">
-                  <Phone className="h-4 w-4" />
-                  Telefone
-                </label>
-                <p className="font-medium">{venda.cliente.telefone}</p>
-              </div>
+              {!editandoCliente ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
+                      <p className="font-medium">{venda.cliente.nome}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">CPF</label>
+                      <p className="font-medium">{maskCPF(venda.cliente.cpf)}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Data de Nascimento</label>
+                      <p className="font-medium">{formatarDataNascimento(venda.cliente.dataNascimento)}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Email</label>
+                      <p className="font-medium">{venda.cliente.email}</p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2 mb-2">
+                      <Phone className="h-4 w-4" />
+                      Telefone
+                    </label>
+                    <p className="font-medium">{maskPhone(venda.cliente.telefone)}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="nome">Nome Completo</Label>
+                      <Input
+                        id="nome"
+                        value={dadosEditados?.nome || ''}
+                        onChange={(e) => setDadosEditados({...dadosEditados, nome: e.target.value})}
+                        placeholder="Nome completo"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cpf">CPF</Label>
+                      <Input
+                        id="cpf"
+                        value={dadosEditados?.cpf || ''}
+                        onChange={(e) => setDadosEditados({...dadosEditados, cpf: maskCPF(e.target.value)})}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dataNascimento">Data de Nascimento</Label>
+                      <Input
+                        id="dataNascimento"
+                        type="date"
+                        value={dadosEditados?.dataNascimento || ''}
+                        onChange={(e) => setDadosEditados({...dadosEditados, dataNascimento: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={dadosEditados?.email || ''}
+                        onChange={(e) => setDadosEditados({...dadosEditados, email: e.target.value})}
+                        placeholder="email@exemplo.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <Label htmlFor="telefone">Telefone</Label>
+                    <Input
+                      id="telefone"
+                      value={dadosEditados?.telefone || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, telefone: maskPhone(e.target.value)})}
+                      placeholder="(00) 0 0000-0000"
+                      maxLength={15}
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Endereço
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Endereço
+                </div>
+                {!editandoEndereco ? (
+                  <Button variant="outline" size="sm" onClick={iniciarEdicaoEndereco}>
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={cancelarEdicao} disabled={salvando}>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={salvarAlteracoes} disabled={salvando}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {salvando ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">CEP</label>
-                  <p className="font-medium">{venda.cliente.endereco.cep}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Logradouro</label>
-                  <p className="font-medium">{venda.cliente.endereco.logradouro}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Número</label>
-                  <p className="font-medium">{venda.cliente.endereco.numero}</p>
-                </div>
-                {venda.cliente.endereco.complemento && (
+              {!editandoEndereco ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Complemento</label>
-                    <p className="font-medium">{venda.cliente.endereco.complemento}</p>
+                    <label className="text-sm font-medium text-muted-foreground">CEP</label>
+                    <p className="font-medium">{venda.cliente.endereco.cep}</p>
                   </div>
-                )}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Bairro</label>
-                  <p className="font-medium">{venda.cliente.endereco.bairro}</p>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Logradouro</label>
+                    <p className="font-medium">{venda.cliente.endereco.logradouro}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Número</label>
+                    <p className="font-medium">{venda.cliente.endereco.numero}</p>
+                  </div>
+                  {venda.cliente.endereco.complemento && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Complemento</label>
+                      <p className="font-medium">{venda.cliente.endereco.complemento}</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Bairro</label>
+                    <p className="font-medium">{venda.cliente.endereco.bairro}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Cidade</label>
+                    <p className="font-medium">{venda.cliente.endereco.localidade}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">UF</label>
+                    <p className="font-medium">{venda.cliente.endereco.uf}</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Cidade</label>
-                  <p className="font-medium">{venda.cliente.endereco.localidade}</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <Input
+                      id="cep"
+                      value={dadosEditados?.cep || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, cep: e.target.value})}
+                      placeholder="00000-000"
+                      maxLength={9}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="logradouro">Logradouro</Label>
+                    <Input
+                      id="logradouro"
+                      value={dadosEditados?.logradouro || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, logradouro: e.target.value})}
+                      placeholder="Rua, Avenida, etc."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="numero">Número</Label>
+                    <Input
+                      id="numero"
+                      value={dadosEditados?.numero || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, numero: e.target.value})}
+                      placeholder="123"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="complemento">Complemento</Label>
+                    <Input
+                      id="complemento"
+                      value={dadosEditados?.complemento || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, complemento: e.target.value})}
+                      placeholder="Apto, Casa, etc."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input
+                      id="bairro"
+                      value={dadosEditados?.bairro || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, bairro: e.target.value})}
+                      placeholder="Nome do bairro"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="localidade">Cidade</Label>
+                    <Input
+                      id="localidade"
+                      value={dadosEditados?.localidade || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, localidade: e.target.value})}
+                      placeholder="Nome da cidade"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="uf">UF</Label>
+                    <Input
+                      id="uf"
+                      value={dadosEditados?.uf || ''}
+                      onChange={(e) => setDadosEditados({...dadosEditados, uf: e.target.value})}
+                      placeholder="SP"
+                      maxLength={2}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">UF</label>
-                  <p className="font-medium">{venda.cliente.endereco.uf}</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -420,13 +698,6 @@ const DetalhesVenda = () => {
                 showLostOption={true}
               />
               
-              <Separator className="my-4" />
-              
-              <StatusSelector
-                venda={venda}
-                onStatusChange={handleStatusChange}
-              />
-              
               <div className="flex flex-col gap-2 pt-4 border-t">
                 <Button 
                   onClick={exportarDadosVenda}
@@ -471,7 +742,7 @@ const DetalhesVenda = () => {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Data de Instalação</label>
-                    <p className="font-medium">{formatDateFromString(venda.dataInstalacao)}</p>
+                    <p className="font-medium">{formatarData(venda.dataInstalacao)}</p>
                   </div>
                 </div>
               )}

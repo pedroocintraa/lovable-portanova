@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Venda } from "@/types/venda";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, maskCPF, maskPhone, formatarDataBrasil } from "@/lib/utils";
 import { 
   Search, 
   MapPin, 
@@ -183,7 +183,7 @@ const AcompanhamentoVendas = () => {
    * Formata data para exibição
    */
   const formatarData = (dataISO: string) => {
-    return new Date(dataISO).toLocaleDateString("pt-BR");
+    return formatarDataBrasil(dataISO);
   };
 
   if (loading) {
@@ -463,7 +463,7 @@ const AcompanhamentoVendas = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <Phone className="h-4 w-4" />
-                        <span>{venda.cliente.telefone}</span>
+                        <span>{maskPhone(venda.cliente.telefone)}</span>
                       </div>
                       {venda.cliente.email && (
                         <div className="flex items-center space-x-1">

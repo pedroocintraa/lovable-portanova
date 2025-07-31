@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Calendar, FileX, Play, Check, FileCheck, CheckCircle, X } from "lucide-react";
 import { Venda } from "@/types/venda";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StatusManagerProps {
   venda: Venda;
@@ -18,6 +19,19 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
   const [showLostDialog, setShowLostDialog] = useState(false);
   const [dataInstalacao, setDataInstalacao] = useState("");
   const [motivoPerda, setMotivoPerda] = useState("");
+  const { usuario } = useAuth();
+
+  // Verificar se o usuário tem permissão para alterar status
+  const hasPermission = usuario?.funcao === "ADMINISTRADOR_GERAL" || 
+                       usuario?.funcao === "SUPERVISOR" || 
+                       usuario?.funcao === "SUPERVISOR_EQUIPE";
+
+  console.log('🔍 StatusManager Debug:', {
+    usuario: usuario?.funcao,
+    hasPermission,
+    vendaStatus: venda.status,
+    vendaId: venda.id
+  });
 
   const getNextActions = () => {
     const actions = [];
@@ -52,20 +66,25 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
         break;
     }
     
+    console.log('🔍 Ações disponíveis:', actions);
     return actions;
   };
 
   const handleAction = (action: Venda["status"], needsReason?: boolean, needsInstallDate?: boolean) => {
+    console.log('🔍 handleAction chamado:', { action, needsReason, needsInstallDate });
+    
     if (needsReason) {
       setShowLostDialog(true);
     } else if (needsInstallDate) {
       setShowInstallDialog(true);
     } else {
+      console.log('🔍 Chamando onStatusChange:', action);
       onStatusChange(action);
     }
   };
 
   const handleInstallConfirm = () => {
+    console.log('🔍 handleInstallConfirm:', dataInstalacao);
     if (dataInstalacao) {
       onStatusChange("aguardando_habilitacao", { dataInstalacao });
       setShowInstallDialog(false);
@@ -74,6 +93,7 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
   };
 
   const handleLostConfirm = () => {
+    console.log('🔍 handleLostConfirm:', motivoPerda);
     if (motivoPerda.trim()) {
       onStatusChange("perdida", { motivoPerda });
       setShowLostDialog(false);
@@ -83,7 +103,9 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
 
   const actions = getNextActions();
 
-  if (actions.length === 0) {
+  // Se não tem permissão ou não há ações, não renderiza nada
+  if (!hasPermission || actions.length === 0) {
+    console.log('🔍 StatusManager não renderizado:', { hasPermission, actionsLength: actions.length });
     return null;
   }
 

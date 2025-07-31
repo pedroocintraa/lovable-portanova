@@ -11,7 +11,7 @@ import { createAuthenticatedSupabaseClient, forceAuthContext } from "@/utils/sup
 class SupabaseService {
   
   /**
-   * Verificação robusta do contexto de autenticação
+   * Verificação simplificada do contexto de autenticação
    */
   private async verifyAuthenticationContext(): Promise<{
     valid: boolean;
@@ -30,47 +30,25 @@ class SupabaseService {
         return { valid: false, error: 'Sessão não encontrada' };
       }
       
-      // 2. Verificar contexto de auth no backend
-      const { data: authContext, error: authError } = await supabase.rpc('debug_auth_context');
-      
-      if (authError) {
-        return { valid: false, error: `Erro no contexto: ${authError.message}` };
-      }
-      
-      const context = authContext?.[0];
-      
-      if (!context?.auth_email) {
-        // Tentar refresh da sessão uma vez
-        console.log('🔄 SupabaseService: Tentando refresh da sessão...');
-        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+      // 2. Verificar se o usuário existe na tabela usuarios
+      const { data: usuarioData, error: usuarioError } = await supabase
+        .from('usuarios')
+        .select('id, nome, email, ativo')
+        .eq('email', session.user.email)
+        .eq('ativo', true)
+        .single();
         
-        if (refreshError || !refreshedSession.session) {
-          return { valid: false, error: 'Falha no refresh da sessão' };
-        }
-        
-        // Verificar novamente após refresh
-        const { data: newAuthContext } = await supabase.rpc('debug_auth_context');
-        const newContext = newAuthContext?.[0];
-        
-        if (!newContext?.auth_email) {
-          return { valid: false, error: 'auth.email() ainda está null após refresh' };
-        }
-        
-        return { 
-          valid: true, 
-          details: { 
-            refreshed: true, 
-            authEmail: newContext.auth_email,
-            authUid: newContext.auth_uid 
-          } 
-        };
+      if (usuarioError || !usuarioData) {
+        return { valid: false, error: 'Usuário não encontrado no sistema ou inativo' };
       }
       
       return { 
         valid: true, 
         details: { 
-          authEmail: context.auth_email,
-          authUid: context.auth_uid 
+          authEmail: session.user.email,
+          authUid: session.user.id,
+          usuarioId: usuarioData.id,
+          usuarioNome: usuarioData.nome
         } 
       };
       
@@ -95,20 +73,15 @@ class SupabaseService {
 
       console.log('✅ SupabaseService: Contexto de autenticação válido:', authVerification.details);
 
-      // 2. Verificar usuário na tabela usuarios usando o email do contexto válido
-      const { data: usuarioData, error: usuarioError } = await supabase
-        .from('usuarios')
-        .select('id, nome, email, ativo')
-        .eq('email', authVerification.details.authEmail)
-        .eq('ativo', true)
-        .single();
+      // 2. Usar dados do usuário já verificados
+      const usuarioData = {
+        id: authVerification.details.usuarioId,
+        nome: authVerification.details.usuarioNome,
+        email: authVerification.details.authEmail,
+        ativo: true
+      };
         
-      console.log('🔍 SupabaseService: Verificação do usuário:', { usuarioData, usuarioError });
-      
-      if (usuarioError || !usuarioData) {
-        console.error('❌ SupabaseService: Usuário não encontrado:', usuarioError);
-        throw new Error('Usuário não encontrado no sistema ou inativo.');
-      }
+      console.log('🔍 SupabaseService: Dados do usuário:', usuarioData);
 
       // 4. Preparar dados do cliente  
       console.log('📝 SupabaseService: Preparando dados do cliente...');
@@ -174,7 +147,24 @@ class SupabaseService {
         throw new Error(`Erro ao atualizar cliente: ${updateClienteError.message}`);
       }
 
-      // 9. Inserir venda
+      // 9. Obter informações da equipe do vendedor
+      console.log('👥 SupabaseService: Obtendo informações da equipe...');
+      const { data: equipeData, error: equipeError } = await supabase
+        .from('usuarios')
+        .select(`
+          id,
+          nome,
+          equipes!inner (
+            id,
+            nome
+          )
+        `)
+        .eq('id', usuarioData.id)
+        .single();
+
+      const equipeNome = equipeData?.equipes?.nome || 'Sem equipe';
+
+      // 10. Inserir venda
       console.log('📋 SupabaseService: Salvando venda...');
       const vendaParaInserir = {
         cliente_id: clienteInserido.id,
@@ -183,7 +173,7 @@ class SupabaseService {
         data_instalacao: vendaData.dataInstalacao,
         observacoes: vendaData.observacoes?.toUpperCase() || null,
         vendedor_id: usuarioData.id,
-        vendedor_nome: usuarioData.nome,
+        vendedor_nome: `${usuarioData.nome} (${equipeNome})`,
         status: 'pendente' as const
       };
 
@@ -218,6 +208,15 @@ class SupabaseService {
    * Salva documentos no Supabase Storage e registra na tabela
    */
   private async salvarDocumentos(vendaId: string, documentos: DocumentosVenda): Promise<void> {
+    // Mapeamento dos tipos de documentos para o ENUM do banco
+    const tipoMapping: Record<string, string> = {
+      'documentoClienteFrente': 'documento_cliente_frente',
+      'documentoClienteVerso': 'documento_cliente_verso',
+      'comprovanteEndereco': 'comprovante_endereco',
+      'fachadaCasa': 'fachada_casa',
+      'selfieCliente': 'selfie_cliente'
+    };
+
     for (const [tipo, docs] of Object.entries(documentos)) {
       if (!docs || docs.length === 0) continue;
 
@@ -237,12 +236,12 @@ class SupabaseService {
 
           if (uploadError) throw uploadError;
 
-          // Registrar na tabela documentos_venda
+          // Registrar na tabela documentos_venda com o tipo mapeado
           const { error: dbError } = await supabase
             .from('documentos_venda')
             .insert({
               venda_id: vendaId,
-              tipo: tipo as any,
+              tipo: tipoMapping[tipo] as any,
               nome_arquivo: doc.nome,
               tipo_mime: doc.tipo,
               tamanho: doc.tamanho,
@@ -276,35 +275,44 @@ class SupabaseService {
       if (error) throw error;
 
       // Transformar dados do Supabase para o formato da interface Venda
-      return vendas.map(venda => ({
-        id: venda.id,
-        cliente: {
-          nome: venda.clientes.nome,
-          telefone: venda.clientes.telefone,
-          email: venda.clientes.email || '',
-          cpf: venda.clientes.cpf,
-          dataNascimento: venda.clientes.data_nascimento || '',
-          endereco: {
-            cep: venda.clientes.enderecos.cep,
-            logradouro: venda.clientes.enderecos.logradouro,
-            numero: venda.clientes.enderecos.numero,
-            complemento: venda.clientes.enderecos.complemento || '',
-            bairro: venda.clientes.enderecos.bairro,
-            localidade: venda.clientes.enderecos.localidade,
-            uf: venda.clientes.enderecos.uf
-          }
-        },
-        status: venda.status,
-        dataVenda: venda.data_venda,
-        dataGeracao: venda.created_at,
-        observacoes: venda.observacoes || '',
-        vendedorId: venda.vendedor_id,
-        vendedorNome: venda.vendedor_nome,
-        planoId: venda.plano_id || '',
-        diaVencimento: venda.dia_vencimento || undefined,
-        dataInstalacao: venda.data_instalacao || undefined,
-        motivoPerda: venda.motivo_perda || undefined
-      }));
+      return vendas.map(venda => {
+        // Extrair nome do vendedor e equipe do campo vendedor_nome
+        const vendedorInfo = venda.vendedor_nome || '';
+        const match = vendedorInfo.match(/^(.+?)\s*\((.+?)\)$/);
+        const vendedorNome = match ? match[1].trim() : vendedorInfo;
+        const equipeNome = match ? match[2].trim() : '';
+
+        return {
+          id: venda.id,
+          cliente: {
+            nome: venda.clientes.nome,
+            telefone: venda.clientes.telefone,
+            email: venda.clientes.email || '',
+            cpf: venda.clientes.cpf,
+            dataNascimento: venda.clientes.data_nascimento || '',
+            endereco: {
+              cep: venda.clientes.enderecos.cep,
+              logradouro: venda.clientes.enderecos.logradouro,
+              numero: venda.clientes.enderecos.numero,
+              complemento: venda.clientes.enderecos.complemento || '',
+              bairro: venda.clientes.enderecos.bairro,
+              localidade: venda.clientes.enderecos.localidade,
+              uf: venda.clientes.enderecos.uf
+            }
+          },
+          status: venda.status,
+          dataVenda: venda.data_venda,
+          dataGeracao: venda.created_at,
+          observacoes: venda.observacoes || '',
+          vendedorId: venda.vendedor_id,
+          vendedorNome: vendedorNome,
+          equipeNome: equipeNome,
+          planoId: venda.plano_id || '',
+          diaVencimento: venda.dia_vencimento || undefined,
+          dataInstalacao: venda.data_instalacao || undefined,
+          motivoPerda: venda.motivo_perda || undefined
+        };
+      });
     } catch (error) {
       console.error('❌ Erro ao obter vendas:', error);
       return [];
@@ -400,6 +408,8 @@ class SupabaseService {
     novoStatus: Venda["status"], 
     extraData?: { dataInstalacao?: string; motivoPerda?: string }
   ): Promise<void> {
+    console.log('🔍 atualizarStatusVenda chamado:', { id, novoStatus, extraData });
+    
     try {
       const updateData: any = { status: novoStatus };
       
@@ -411,17 +421,117 @@ class SupabaseService {
         updateData.motivo_perda = extraData.motivoPerda;
       }
 
+      console.log('🔍 Dados para atualização:', updateData);
+
       const { error } = await supabase
         .from('vendas')
         .update(updateData)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        throw error;
+      }
 
       console.log('✅ Status da venda atualizado com sucesso');
     } catch (error) {
       console.error('❌ Erro ao atualizar status da venda:', error);
       throw new Error('Falha ao atualizar status');
+    }
+  }
+
+  /**
+   * Atualiza dados do cliente
+   */
+  async atualizarDadosCliente(vendaId: string, dadosCliente: {
+    nome: string;
+    cpf: string;
+    telefone: string;
+    email: string;
+    dataNascimento: string;
+  }): Promise<void> {
+    try {
+      // Obter ID do cliente através da venda
+      const { data: venda, error: vendaError } = await supabase
+        .from('vendas')
+        .select('cliente_id')
+        .eq('id', vendaId)
+        .single();
+
+      if (vendaError || !venda) {
+        throw new Error('Venda não encontrada');
+      }
+
+      // Atualizar dados do cliente
+      const { error: clienteError } = await supabase
+        .from('clientes')
+        .update({
+          nome: dadosCliente.nome,
+          cpf: dadosCliente.cpf,
+          telefone: dadosCliente.telefone,
+          email: dadosCliente.email,
+          data_nascimento: dadosCliente.dataNascimento
+        })
+        .eq('id', venda.cliente_id);
+
+      if (clienteError) {
+        throw new Error(`Erro ao atualizar cliente: ${clienteError.message}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao atualizar dados do cliente:', error);
+      throw new Error(error.message || 'Falha ao atualizar dados do cliente');
+    }
+  }
+
+  /**
+   * Atualiza endereço do cliente
+   */
+  async atualizarEnderecoCliente(vendaId: string, dadosEndereco: {
+    cep: string;
+    logradouro: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    localidade: string;
+    uf: string;
+  }): Promise<void> {
+    try {
+      // Obter ID do cliente e endereço através da venda
+      const { data: venda, error: vendaError } = await supabase
+        .from('vendas')
+        .select(`
+          cliente_id,
+          clientes!inner (
+            endereco_id
+          )
+        `)
+        .eq('id', vendaId)
+        .single();
+
+      if (vendaError || !venda) {
+        throw new Error('Venda não encontrada');
+      }
+
+      // Atualizar endereço
+      const { error: enderecoError } = await supabase
+        .from('enderecos')
+        .update({
+          cep: dadosEndereco.cep,
+          logradouro: dadosEndereco.logradouro,
+          numero: dadosEndereco.numero,
+          complemento: dadosEndereco.complemento,
+          bairro: dadosEndereco.bairro,
+          localidade: dadosEndereco.localidade,
+          uf: dadosEndereco.uf
+        })
+        .eq('id', venda.clientes.endereco_id);
+
+      if (enderecoError) {
+        throw new Error(`Erro ao atualizar endereço: ${enderecoError.message}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao atualizar endereço do cliente:', error);
+      throw new Error(error.message || 'Falha ao atualizar endereço do cliente');
     }
   }
 

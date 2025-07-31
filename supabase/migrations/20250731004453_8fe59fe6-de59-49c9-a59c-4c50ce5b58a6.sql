@@ -22,7 +22,7 @@ BEGIN
     auth.uid() as auth_uid,
     auth.email() as auth_email,
     get_usuario_atual() as get_usuario_atual_result,
-    EXISTS(SELECT 1 FROM public.usuarios WHERE user_id = auth.uid() AND ativo = true) as usuario_exists;
+    EXISTS(SELECT 1 FROM public.usuarios WHERE usuarios.user_id = auth.uid() AND usuarios.ativo = true) as usuario_exists;
 END;
 $$;
 
@@ -38,9 +38,36 @@ DECLARE
 BEGIN
   SELECT funcao INTO user_role
   FROM public.usuarios 
-  WHERE user_id = auth.uid() AND ativo = true
+  WHERE usuarios.user_id = auth.uid() AND usuarios.ativo = true
   LIMIT 1;
   
   RETURN user_role;
 END;
 $$;
+
+-- Políticas para vendas (permitir atualização de status)
+DROP POLICY IF EXISTS "vendas_update_by_uid" ON public.vendas;
+CREATE POLICY "vendas_update_by_uid" ON public.vendas
+FOR UPDATE USING (
+  EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao IN ('ADMINISTRADOR_GERAL', 'SUPERVISOR', 'SUPERVISOR_EQUIPE') AND u.ativo = true)
+  OR
+  EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.id = vendas.vendedor_id AND u.ativo = true)
+);
+
+-- Políticas para clientes (permitir atualização)
+DROP POLICY IF EXISTS "clientes_update_by_uid" ON public.clientes;
+CREATE POLICY "clientes_update_by_uid" ON public.clientes
+FOR UPDATE USING (
+  EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao IN ('ADMINISTRADOR_GERAL', 'SUPERVISOR', 'SUPERVISOR_EQUIPE') AND u.ativo = true)
+  OR
+  EXISTS(SELECT 1 FROM public.vendas v WHERE v.cliente_id = clientes.id AND v.vendedor_id = (SELECT id FROM public.usuarios WHERE user_id = auth.uid()))
+);
+
+-- Políticas para enderecos (permitir atualização)
+DROP POLICY IF EXISTS "enderecos_update_by_uid" ON public.enderecos;
+CREATE POLICY "enderecos_update_by_uid" ON public.enderecos
+FOR UPDATE USING (
+  EXISTS(SELECT 1 FROM public.usuarios u WHERE u.user_id = auth.uid() AND u.funcao IN ('ADMINISTRADOR_GERAL', 'SUPERVISOR', 'SUPERVISOR_EQUIPE') AND u.ativo = true)
+  OR
+  EXISTS(SELECT 1 FROM public.clientes c WHERE c.endereco_id = enderecos.id AND c.id IN (SELECT cliente_id FROM public.vendas WHERE vendedor_id = (SELECT id FROM public.usuarios WHERE user_id = auth.uid())))
+);

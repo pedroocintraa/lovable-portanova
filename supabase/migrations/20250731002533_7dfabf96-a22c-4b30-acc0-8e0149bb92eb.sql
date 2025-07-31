@@ -25,7 +25,7 @@ BEGIN
   -- Buscar diretamente sem depender de RLS
   SELECT funcao INTO user_role
   FROM public.usuarios 
-  WHERE user_id = auth.uid() AND ativo = true
+  WHERE usuarios.user_id = auth.uid() AND usuarios.ativo = true
   LIMIT 1;
   
   RETURN user_role;
@@ -41,9 +41,9 @@ SET search_path TO 'public'
 AS $$
   SELECT EXISTS(
     SELECT 1 FROM public.usuarios 
-    WHERE user_id = auth.uid() 
-    AND funcao = 'ADMINISTRADOR_GERAL'::funcao_usuario 
-    AND ativo = true
+    WHERE usuarios.user_id = auth.uid() 
+    AND usuarios.funcao = 'ADMINISTRADOR_GERAL'::funcao_usuario 
+    AND usuarios.ativo = true
   );
 $$;
 
@@ -56,9 +56,9 @@ SET search_path TO 'public'
 AS $$
   SELECT EXISTS(
     SELECT 1 FROM public.usuarios 
-    WHERE user_id = auth.uid() 
-    AND funcao IN ('ADMINISTRADOR_GERAL'::funcao_usuario, 'SUPERVISOR'::funcao_usuario)
-    AND ativo = true
+    WHERE usuarios.user_id = auth.uid() 
+    AND usuarios.funcao IN ('ADMINISTRADOR_GERAL'::funcao_usuario, 'SUPERVISOR'::funcao_usuario)
+    AND usuarios.ativo = true
   );
 $$;
 
@@ -85,12 +85,12 @@ CREATE POLICY "usuarios_select_supervisor_safe" ON public.usuarios
 FOR SELECT TO authenticated
 USING (
   is_admin_or_supervisor_safe() OR 
-  user_id = auth.uid()
+  usuarios.user_id = auth.uid()
 );
 
 CREATE POLICY "usuarios_select_own" ON public.usuarios
 FOR SELECT TO authenticated
-USING (user_id = auth.uid());
+USING (usuarios.user_id = auth.uid());
 
 CREATE POLICY "usuarios_insert_admin_safe" ON public.usuarios
 FOR INSERT TO authenticated
@@ -102,11 +102,11 @@ USING (is_admin_safe());
 
 CREATE POLICY "usuarios_update_own_safe" ON public.usuarios
 FOR UPDATE TO authenticated
-USING (user_id = auth.uid())
+USING (usuarios.user_id = auth.uid())
 WITH CHECK (
-  user_id = auth.uid() AND 
+  usuarios.user_id = auth.uid() AND 
   -- Não permite auto-elevação de privilégios
-  funcao = (SELECT funcao FROM public.usuarios WHERE user_id = auth.uid())
+  funcao = (SELECT funcao FROM public.usuarios WHERE usuarios.user_id = auth.uid())
 );
 
 -- Atualizar outras políticas que dependem das funções antigas
