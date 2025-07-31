@@ -21,10 +21,16 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
   const [motivoPerda, setMotivoPerda] = useState("");
   const { usuario } = useAuth();
 
-  // Verificar se o usuário tem permissão para alterar status
-  const hasPermission = usuario?.funcao === "ADMINISTRADOR_GERAL" || 
-                       usuario?.funcao === "SUPERVISOR" || 
-                       usuario?.funcao === "SUPERVISOR_EQUIPE";
+  // Verificar se o usuário tem permissão para alterar status (apenas admin geral ou supervisor)
+  const hasPermission = usuario?.funcao === "ADMINISTRADOR_GERAL" || usuario?.funcao === "SUPERVISOR";
+
+  const handleSecurityCheck = () => {
+    if (!hasPermission) {
+      alert("⚠️ ALERTA DE SEGURANÇA: Apenas supervisores e administradores gerais podem alterar o status das vendas. Entre em contato com seu supervisor.");
+      return false;
+    }
+    return true;
+  };
 
   console.log('🔍 StatusManager Debug:', {
     usuario: usuario?.funcao,
@@ -72,6 +78,11 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
 
   const handleAction = (action: Venda["status"], needsReason?: boolean, needsInstallDate?: boolean) => {
     console.log('🔍 handleAction chamado:', { action, needsReason, needsInstallDate });
+    
+    // Verificar segurança antes de qualquer ação
+    if (!handleSecurityCheck()) {
+      return;
+    }
     
     if (needsReason) {
       setShowLostDialog(true);

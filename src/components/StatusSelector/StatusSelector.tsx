@@ -24,8 +24,28 @@ export const StatusSelector: React.FC<StatusSelectorProps> = ({ venda, onStatusC
   // Verificar se o usuário tem permissão (admin geral ou supervisor)
   const hasPermission = usuario?.funcao === "ADMINISTRADOR_GERAL" || usuario?.funcao === "SUPERVISOR";
 
+  const handleSecurityCheck = () => {
+    if (!hasPermission) {
+      alert("⚠️ ALERTA DE SEGURANÇA: Apenas supervisores e administradores gerais podem alterar o status das vendas. Entre em contato com seu supervisor.");
+      return false;
+    }
+    return true;
+  };
+
   if (!hasPermission) {
-    return null;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Crown className="h-4 w-4" />
+          <span>Controle Administrativo</span>
+        </div>
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <p className="text-sm text-destructive">
+            Acesso restrito: Apenas supervisores e administradores podem alterar status.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const statusOptions = [

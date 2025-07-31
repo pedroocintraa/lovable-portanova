@@ -378,6 +378,7 @@ export type Database = {
           data_instalacao: string | null
           data_venda: string | null
           dia_vencimento: number | null
+          equipe: string | null
           id: string
           motivo_perda: string | null
           observacoes: string | null
@@ -393,6 +394,7 @@ export type Database = {
           data_instalacao?: string | null
           data_venda?: string | null
           dia_vencimento?: number | null
+          equipe?: string | null
           id?: string
           motivo_perda?: string | null
           observacoes?: string | null
@@ -408,6 +410,7 @@ export type Database = {
           data_instalacao?: string | null
           data_venda?: string | null
           dia_vencimento?: number | null
+          equipe?: string | null
           id?: string
           motivo_perda?: string | null
           observacoes?: string | null
@@ -503,6 +506,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["funcao_usuario"]
       }
+      get_data_brasilia: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_funcao_usuario_atual: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["funcao_usuario"]
@@ -526,6 +533,13 @@ export type Database = {
       get_usuario_por_email: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_vendedor_info: {
+        Args: { vendedor_id: string }
+        Returns: {
+          vendedor_nome: string
+          equipe_nome: string
+        }[]
       }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
