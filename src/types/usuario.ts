@@ -27,13 +27,4 @@ export interface UsuarioFormData extends Omit<Usuario, "id" | "dataCadastro" | "
   // Dados do formulário antes de ser processado
 }
 
-export interface PermissoesUsuario {
-  podeAcessarDashboard: boolean;
-  podeAcessarTodasVendas: boolean;
-  podeAcessarApenasPropriaVendas: boolean;
-  podeGerenciarUsuarios: boolean;
-  podeEditarVendas: boolean;
-  podeGerenciarEquipes: boolean;
-  podeCriarSupervisorEquipe: boolean;
-  podeCriarVendedor: boolean;
-}
+// Interface de permissões removida - usando verificação direta de função

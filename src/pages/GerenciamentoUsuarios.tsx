@@ -12,11 +12,24 @@ import { equipesService } from "@/services/equipesService";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Edit, Trash2, Users, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { podeGerenciarUsuarios } from "@/utils/permissoes";
 
 
 export default function GerenciamentoUsuarios() {
   const { toast } = useToast();
   const { usuario: usuarioLogado } = useAuth();
+
+  // Verificar se tem permissão para gerenciar usuários
+  if (!podeGerenciarUsuarios(usuarioLogado)) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
+          <h1 className="text-2xl font-bold text-destructive mb-2">Acesso Negado</h1>
+          <p className="text-muted-foreground">Você não tem permissão para gerenciar usuários.</p>
+        </div>
+      </div>
+    );
+  }
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
   const [busca, setBusca] = useState("");

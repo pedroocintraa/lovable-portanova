@@ -17,6 +17,26 @@ export function podeModificarVendas(usuario: Usuario | null): boolean {
 }
 
 /**
+ * Verifica se o usuário pode gerenciar usuários
+ */
+export function podeGerenciarUsuarios(usuario: Usuario | null): boolean {
+  if (!usuario) return false;
+  
+  return usuario.funcao === 'ADMINISTRADOR_GERAL' ||
+         usuario.funcao === 'SUPERVISOR' ||
+         usuario.funcao === 'SUPERVISOR_EQUIPE';
+}
+
+/**
+ * Verifica se o usuário pode gerenciar equipes
+ */
+export function podeGerenciarEquipes(usuario: Usuario | null): boolean {
+  if (!usuario) return false;
+  
+  return usuario.funcao === 'ADMINISTRADOR_GERAL';
+}
+
+/**
  * Verifica se o usuário é administrador geral
  */
 export function isAdministradorGeral(usuario: Usuario | null): boolean {

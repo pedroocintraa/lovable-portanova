@@ -32,7 +32,7 @@ class SystemService {
       reativar: usuariosService.reativarUsuario.bind(usuariosService),
       validarEmail: usuariosService.validarEmailUnico.bind(usuariosService),
       validarCpf: usuariosService.validarCpfUnico.bind(usuariosService),
-      obterPermissoes: usuariosService.obterPermissoes.bind(usuariosService)
+      // obterPermissoes removido - usando verificação direta de função
     };
   }
 

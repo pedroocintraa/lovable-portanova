@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Calendar, FileX, Play, Check, FileCheck, CheckCircle, X } from "lucide-react";
 import { Venda } from "@/types/venda";
 import { useAuth } from "@/contexts/AuthContext";
+import { podeModificarVendas } from "@/utils/permissoes";
 
 interface StatusManagerProps {
   venda: Venda;
@@ -22,7 +23,7 @@ export const StatusManager: React.FC<StatusManagerProps> = ({ venda, onStatusCha
   const { usuario } = useAuth();
 
   // Verificar se o usuário tem permissão para alterar status (apenas admin geral ou supervisor)
-  const hasPermission = usuario?.funcao === "ADMINISTRADOR_GERAL" || usuario?.funcao === "SUPERVISOR";
+  const hasPermission = podeModificarVendas(usuario);
 
   const handleSecurityCheck = () => {
     if (!hasPermission) {

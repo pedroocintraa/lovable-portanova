@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Usuario, PermissoesUsuario, FuncaoUsuario } from "@/types/usuario";
+import { Usuario, FuncaoUsuario } from "@/types/usuario";
 import { usuariosService } from "@/services/usuariosService";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   usuario: Usuario | null;
-  permissoes: PermissoesUsuario | null;
   user: User | null;
   session: Session | null;
   login: (email: string, password: string) => Promise<{ error: any }>;
@@ -23,7 +22,6 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [permissoes, setPermissoes] = useState<PermissoesUsuario | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,17 +61,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
               if (userData && mounted) {
                 console.log('AuthContext: Usuário encontrado:', userData.nome);
                 setUsuario(userData);
-                setPermissoes(usuariosService.obterPermissoes(userData.funcao));
               } else if (mounted) {
                 console.warn('AuthContext: Usuário auth existe mas não na tabela usuarios.');
                 setUsuario(null);
-                setPermissoes(null);
               }
             } catch (error) {
               console.error('AuthContext: Erro ao carregar dados do usuário:', error);
               if (mounted) {
                 setUsuario(null);
-                setPermissoes(null);
               }
             } finally {
               if (mounted) {
@@ -87,7 +82,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } else {
           // Sem sessão - limpar tudo
           setUsuario(null);
-          setPermissoes(null);
           setLoading(false);
         }
       }
@@ -231,7 +225,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     await supabase.auth.signOut();
     setUsuario(null);
-    setPermissoes(null);
     setUser(null);
     setSession(null);
   };
@@ -248,7 +241,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return (
     <AuthContext.Provider value={{
       usuario,
-      permissoes,
       user,
       session,
       login,

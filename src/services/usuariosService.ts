@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Usuario, FuncaoUsuario, PermissoesUsuario } from "@/types/usuario";
+import { Usuario, FuncaoUsuario } from "@/types/usuario";
 
 class UsuariosService {
   async obterUsuarios(): Promise<Usuario[]> {
@@ -404,70 +404,7 @@ class UsuariosService {
     };
   }
 
-  // Sistema de permissões (mantido do userService original)
-  obterPermissoes(funcao: FuncaoUsuario): PermissoesUsuario {
-    switch (funcao) {
-      case FuncaoUsuario.ADMINISTRADOR_GERAL:
-        return {
-          podeAcessarDashboard: true,
-          podeAcessarTodasVendas: true,
-          podeAcessarApenasPropriaVendas: false,
-          podeGerenciarUsuarios: true,
-          podeEditarVendas: true,
-          podeGerenciarEquipes: true,
-          podeCriarSupervisorEquipe: true,
-          podeCriarVendedor: true,
-        };
-      
-      case FuncaoUsuario.SUPERVISOR:
-        return {
-          podeAcessarDashboard: true,
-          podeAcessarTodasVendas: true,
-          podeAcessarApenasPropriaVendas: false,
-          podeGerenciarUsuarios: true,
-          podeEditarVendas: true,
-          podeGerenciarEquipes: false,
-          podeCriarSupervisorEquipe: true,
-          podeCriarVendedor: true,
-        };
-      
-      case FuncaoUsuario.SUPERVISOR_EQUIPE:
-        return {
-          podeAcessarDashboard: true,
-          podeAcessarTodasVendas: false,
-          podeAcessarApenasPropriaVendas: true,
-          podeGerenciarUsuarios: true,
-          podeEditarVendas: true,
-          podeGerenciarEquipes: false,
-          podeCriarSupervisorEquipe: false,
-          podeCriarVendedor: true,
-        };
-      
-      case FuncaoUsuario.VENDEDOR:
-        return {
-          podeAcessarDashboard: true,
-          podeAcessarTodasVendas: false,
-          podeAcessarApenasPropriaVendas: true,
-          podeGerenciarUsuarios: false,
-          podeEditarVendas: false,
-          podeGerenciarEquipes: false,
-          podeCriarSupervisorEquipe: false,
-          podeCriarVendedor: false,
-        };
-      
-      default:
-        return {
-          podeAcessarDashboard: false,
-          podeAcessarTodasVendas: false,
-          podeAcessarApenasPropriaVendas: false,
-          podeGerenciarUsuarios: false,
-          podeEditarVendas: false,
-          podeGerenciarEquipes: false,
-          podeCriarSupervisorEquipe: false,
-          podeCriarVendedor: false,
-        };
-    }
-  }
+  // Sistema de permissões removido - usando verificação direta de função
 
   formatarTelefone(telefone: string): string {
     const nums = telefone.replace(/\D/g, "");

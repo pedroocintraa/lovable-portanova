@@ -15,6 +15,7 @@ import { equipesService } from "@/services/equipesService";
 import { usuariosService } from "@/services/usuariosService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { podeGerenciarEquipes } from "@/utils/permissoes";
 
 interface EquipeFormProps {
   equipe?: Equipe;
@@ -108,7 +109,7 @@ function EquipeForm({ equipe, onSubmit, onCancel }: EquipeFormProps) {
 
 export function GerenciamentoEquipes() {
   const { toast } = useToast();
-  const { permissoes } = useAuth();
+  const { usuario } = useAuth();
   const [equipes, setEquipes] = useState<EquipeComMembros[]>([]);
   const [filteredEquipes, setFilteredEquipes] = useState<EquipeComMembros[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -326,7 +327,7 @@ export function GerenciamentoEquipes() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gerenciamento de Equipes</h1>
-        {permissoes?.podeGerenciarEquipes ? (
+        {podeGerenciarEquipes(usuario) ? (
           <Button onClick={handleNovaEquipe}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Equipe
@@ -342,7 +343,7 @@ export function GerenciamentoEquipes() {
       <Tabs defaultValue="equipes" className="space-y-6">
         <TabsList>
           <TabsTrigger value="equipes">Equipes</TabsTrigger>
-          {permissoes?.podeGerenciarEquipes && (
+          {podeGerenciarEquipes(usuario) && (
             <TabsTrigger value="membros">Gerenciar Membros</TabsTrigger>
           )}
         </TabsList>
@@ -392,7 +393,7 @@ export function GerenciamentoEquipes() {
                             <p><strong>Criada em:</strong> {new Date(equipe.created_at).toLocaleDateString()}</p>
                           </div>
                           
-                           {permissoes?.podeGerenciarEquipes && (
+                           {podeGerenciarEquipes(usuario) && (
                              <div className="flex gap-2 pt-2">
                                <Button
                                  variant="outline"
@@ -422,7 +423,7 @@ export function GerenciamentoEquipes() {
           </Card>
         </TabsContent>
 
-        {permissoes?.podeGerenciarEquipes && (
+        {podeGerenciarEquipes(usuario) && (
           <TabsContent value="membros" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>

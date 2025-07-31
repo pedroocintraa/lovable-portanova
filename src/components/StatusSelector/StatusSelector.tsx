@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { AlertTriangle, Crown } from "lucide-react";
 import { Venda } from "@/types/venda";
 import { useAuth } from "@/contexts/AuthContext";
+import { podeModificarVendas } from "@/utils/permissoes";
 
 interface StatusSelectorProps {
   venda: Venda;
@@ -21,8 +22,8 @@ export const StatusSelector: React.FC<StatusSelectorProps> = ({ venda, onStatusC
   const [motivoPerda, setMotivoPerda] = useState("");
   const { usuario } = useAuth();
 
-  // Verificar se o usuário tem permissão (admin geral ou supervisor)
-  const hasPermission = usuario?.funcao === "ADMINISTRADOR_GERAL" || usuario?.funcao === "SUPERVISOR";
+  // Verificar se o usuário tem permissão para modificar vendas
+  const hasPermission = podeModificarVendas(usuario);
 
   const handleSecurityCheck = () => {
     if (!hasPermission) {

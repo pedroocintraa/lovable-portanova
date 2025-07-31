@@ -502,17 +502,9 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Enums"]["funcao_usuario"]
-      }
       get_data_brasilia: {
         Args: Record<PropertyKey, never>
         Returns: string
-      }
-      get_funcao_usuario_atual: {
-        Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Enums"]["funcao_usuario"]
       }
       get_user_company: {
         Args: { user_id?: string }
@@ -590,14 +582,6 @@ export type Database = {
       }
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
-        Returns: boolean
-      }
-      is_admin_or_supervisor_safe: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_safe: {
-        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       log_login_attempt: {

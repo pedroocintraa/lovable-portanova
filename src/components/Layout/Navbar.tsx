@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { podeGerenciarUsuarios, podeGerenciarEquipes } from "@/utils/permissoes";
 import { Users, Menu, X, UserCog, Home, Plus, Eye, Settings, LogOut, Lock, ChevronDown } from "lucide-react";
 
 
@@ -16,7 +17,6 @@ export const Navbar = () => {
   const location = useLocation();
   const {
     usuario,
-    permissoes,
     logout
   } = useAuth();
   const handleLogout = () => {
@@ -26,7 +26,7 @@ export const Navbar = () => {
     path: "/",
     label: "Dashboard",
     icon: Home,
-    permitido: permissoes?.podeAcessarDashboard
+    permitido: true // Todos usuários autenticados podem acessar dashboard
   }, {
     path: "/vendas",
     label: "Nova Venda",
@@ -41,12 +41,12 @@ export const Navbar = () => {
     path: "/usuarios",
     label: "Usuários",
     icon: UserCog,
-    permitido: permissoes?.podeGerenciarUsuarios
+    permitido: podeGerenciarUsuarios(usuario)
   }, {
     path: "/equipes",
     label: "Equipes",
     icon: Users,
-    permitido: permissoes?.podeGerenciarEquipes
+    permitido: podeGerenciarEquipes(usuario)
   }, {
     path: "/configuracoes",
     label: "Configurações",

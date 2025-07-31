@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Layout/Navbar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+
 import Dashboard from "./pages/Dashboard";
 import CadastroVenda from "./pages/CadastroVenda";
 import AcompanhamentoVendas from "./pages/AcompanhamentoVendas";
@@ -65,22 +65,18 @@ const App = () => (
               } />
               <Route path="/usuarios" element={
                 <ProtectedRoute>
-                  <RoleProtectedRoute requiredPermission="podeGerenciarUsuarios">
-                    <Navbar />
-                    <main className="container mx-auto px-4 py-8">
-                      <GerenciamentoUsuarios />
-                    </main>
-                  </RoleProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <GerenciamentoUsuarios />
+                  </main>
                 </ProtectedRoute>
               } />
               <Route path="/equipes" element={
                 <ProtectedRoute>
-                  <RoleProtectedRoute requiredPermission="podeGerenciarEquipes">
-                    <Navbar />
-                    <main className="container mx-auto px-4 py-8">
-                      <GerenciamentoEquipes />
-                    </main>
-                  </RoleProtectedRoute>
+                  <Navbar />
+                  <main className="container mx-auto px-4 py-8">
+                    <GerenciamentoEquipes />
+                  </main>
                 </ProtectedRoute>
               } />
               <Route path="/configuracoes" element={
