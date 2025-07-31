@@ -322,6 +322,7 @@ export type Database = {
           supervisor_equipe_id: string | null
           telefone: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean | null
@@ -336,6 +337,7 @@ export type Database = {
           supervisor_equipe_id?: string | null
           telefone: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean | null
@@ -350,6 +352,7 @@ export type Database = {
           supervisor_equipe_id?: string | null
           telefone?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -493,6 +496,10 @@ export type Database = {
         Returns: string
       }
       get_usuario_atual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_usuario_atual_by_uid: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
