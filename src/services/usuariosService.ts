@@ -27,7 +27,7 @@ class UsuariosService {
         *,
         equipes:equipe_id(nome)
       `)
-      .eq('id', id)
+      .eq('user_id', id)
       .eq('ativo', true)
       .maybeSingle();
 

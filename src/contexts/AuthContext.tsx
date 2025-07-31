@@ -56,35 +56,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             try {
               console.log('AuthContext: Buscando dados do usuário:', session.user.id);
               
-              // Primeiro tentar por ID
-              let userData = await usuariosService.obterUsuarioPorId(session.user.id);
-              
-              // Se não encontrar por ID, tentar por email
-              if (!userData && session.user.email) {
-                console.log('AuthContext: Usuário não encontrado por ID, tentando por email');
-                const { data: usuarioByEmail } = await supabase
-                  .from('usuarios')
-                  .select('*')
-                  .eq('email', session.user.email)
-                  .eq('ativo', true)
-                  .single();
-                
-                if (usuarioByEmail) {
-                  userData = {
-                    id: usuarioByEmail.id,
-                    nome: usuarioByEmail.nome,
-                    telefone: usuarioByEmail.telefone,
-                    email: usuarioByEmail.email,
-                    cpf: usuarioByEmail.cpf,
-                    funcao: usuarioByEmail.funcao as FuncaoUsuario,
-                    dataCadastro: usuarioByEmail.data_cadastro || usuarioByEmail.created_at,
-                    ativo: usuarioByEmail.ativo,
-                    equipeId: usuarioByEmail.equipe_id,
-                    supervisorEquipeId: usuarioByEmail.supervisor_equipe_id,
-                    nomeEquipe: undefined
-                  };
-                }
-              }
+              // Buscar usuário usando user_id do auth.users
+              console.log('AuthContext: Buscando usuário com auth.uid():', session.user.id);
+              const userData = await usuariosService.obterUsuarioPorId(session.user.id);
               
               if (userData && mounted) {
                 console.log('AuthContext: Usuário encontrado:', userData.nome);
