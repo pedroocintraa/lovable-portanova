@@ -503,8 +503,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["funcao_usuario"]
       }
+      get_funcao_usuario_atual: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["funcao_usuario"]
+      }
       get_user_company: {
         Args: { user_id?: string }
+        Returns: string
+      }
+      get_usuario_atual: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_usuario_atual_by_uid: {
