@@ -495,24 +495,16 @@ export type Database = {
           rls_test_result: boolean
         }[]
       }
-      get_equipe_usuario_atual: {
+      get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      get_funcao_usuario: {
-        Args: { user_id?: string }
-        Returns: Database["public"]["Enums"]["funcao_usuario"]
-      }
-      get_funcao_usuario_atual: {
+      get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["funcao_usuario"]
       }
       get_user_company: {
         Args: { user_id?: string }
-        Returns: string
-      }
-      get_usuario_atual: {
-        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_usuario_atual_by_uid: {
@@ -578,11 +570,11 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
-      is_admin: {
+      is_admin_or_supervisor_safe: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      is_admin_or_supervisor: {
+      is_admin_safe: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
