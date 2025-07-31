@@ -479,6 +479,22 @@ export type Database = {
           usuario_exists: boolean
         }[]
       }
+      debug_user_migration_status: {
+        Args: { p_email: string }
+        Returns: {
+          email_param: string
+          auth_user_exists: boolean
+          auth_user_id: string
+          usuarios_record_exists: boolean
+          usuarios_id: string
+          usuarios_user_id: string
+          usuarios_ativo: boolean
+          usuarios_funcao: Database["public"]["Enums"]["funcao_usuario"]
+          user_id_match: boolean
+          can_access_system: boolean
+          rls_test_result: boolean
+        }[]
+      }
       get_equipe_usuario_atual: {
         Args: Record<PropertyKey, never>
         Returns: string
