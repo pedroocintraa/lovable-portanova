@@ -119,13 +119,27 @@ const AcompanhamentoVendas = () => {
   }, [vendas]);
 
   /**
-   * Atualiza status de uma venda
+   * Atualiza status de uma venda com verificação de permissão
    */
   const handleAtualizarStatus = async (
     id: string, 
     novoStatus: Venda["status"],
     extraData?: { dataInstalacao?: string; motivoPerda?: string }
   ) => {
+    // Verificar permissão no frontend
+    if (!usuario || (
+      usuario.funcao !== 'ADMINISTRADOR_GERAL' &&
+      usuario.funcao !== 'SUPERVISOR' &&
+      usuario.funcao !== 'SUPERVISOR_EQUIPE'
+    )) {
+      toast({
+        variant: "destructive",
+        title: "Acesso negado",
+        description: "Você não tem permissão para alterar o status das vendas.",
+      });
+      return;
+    }
+
     try {
       await supabaseService.atualizarStatusVenda(id, novoStatus, extraData);
       

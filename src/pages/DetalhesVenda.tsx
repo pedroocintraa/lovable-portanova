@@ -141,6 +141,19 @@ const DetalhesVenda = () => {
   const salvarAlteracoes = async () => {
     if (!venda || !dadosEditados) return;
 
+    // Importar e verificar permissão usando a função utilitária
+    const { podeModificarVendas } = await import('@/utils/permissoes');
+    const { usuario } = useAuth();
+    
+    if (!podeModificarVendas(usuario)) {
+      toast({
+        variant: "destructive",
+        title: "Acesso negado",
+        description: "Você não tem permissão para editar dados das vendas.",
+      });
+      return;
+    }
+
     setSalvando(true);
     try {
       // Atualizar dados do cliente
@@ -190,7 +203,7 @@ const DetalhesVenda = () => {
     }
   };
 
-  // Função para atualizar status da venda
+  // Função para atualizar status da venda com verificação de permissão
   const handleStatusChange = async (
     novoStatus: Venda["status"],
     extraData?: { dataInstalacao?: string; motivoPerda?: string }
@@ -198,6 +211,19 @@ const DetalhesVenda = () => {
     console.log('🔍 handleStatusChange chamado:', { novoStatus, extraData, vendaId: venda?.id });
     
     if (!venda) return;
+
+    // Importar e verificar permissão usando a função utilitária
+    const { podeModificarVendas } = await import('@/utils/permissoes');
+    const { usuario } = useAuth();
+    
+    if (!podeModificarVendas(usuario)) {
+      toast({
+        variant: "destructive",
+        title: "Acesso negado",
+        description: "Você não tem permissão para alterar o status das vendas.",
+      });
+      return;
+    }
     
     try {
       console.log('🔍 Chamando atualizarStatusVenda...');

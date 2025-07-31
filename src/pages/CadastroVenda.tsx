@@ -108,9 +108,21 @@ const CadastroVenda = () => {
   };
 
   /**
-   * Submete o formulário e salva a venda
+   * Submete o formulário e salva a venda com verificação de permissão
    */
   const onSubmit = async (data: VendaFormData) => {
+    // Importar e verificar permissão usando a função utilitária
+    const { podeModificarVendas } = await import('@/utils/permissoes');
+    
+    if (!podeModificarVendas(usuario)) {
+      toast({
+        variant: "destructive",
+        title: "Acesso negado",
+        description: "Você não tem permissão para cadastrar vendas.",
+      });
+      return;
+    }
+
     // Validar campos obrigatórios
     if (!planoSelecionado) {
       toast({

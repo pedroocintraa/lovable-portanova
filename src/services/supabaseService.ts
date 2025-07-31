@@ -11,49 +11,15 @@ import { createAuthenticatedSupabaseClient, forceAuthContext } from "@/utils/sup
 class SupabaseService {
   
   /**
-   * Verificação simplificada do contexto de autenticação
+   * Verificação básica de autenticação
    */
-  private async verifyAuthenticationContext(): Promise<{
-    valid: boolean;
-    error?: string;
-    details?: any;
-  }> {
+  private async verifyBasicAuth(): Promise<boolean> {
     try {
-      // 1. Verificar sessão ativa
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        return { valid: false, error: `Erro de sessão: ${sessionError.message}` };
-      }
-      
-      if (!session?.user) {
-        return { valid: false, error: 'Sessão não encontrada' };
-      }
-      
-      // 2. Verificar se o usuário existe na tabela usuarios
-      const { data: usuarioData, error: usuarioError } = await supabase
-        .from('usuarios')
-        .select('id, nome, email, ativo')
-        .eq('email', session.user.email)
-        .eq('ativo', true)
-        .single();
-        
-      if (usuarioError || !usuarioData) {
-        return { valid: false, error: 'Usuário não encontrado no sistema ou inativo' };
-      }
-      
-      return { 
-        valid: true, 
-        details: { 
-          authEmail: session.user.email,
-          authUid: session.user.id,
-          usuarioId: usuarioData.id,
-          usuarioNome: usuarioData.nome
-        } 
-      };
-      
-    } catch (error: any) {
-      return { valid: false, error: `Erro inesperado: ${error.message}` };
+      const { data: { session } } = await supabase.auth.getSession();
+      return !!session?.user;
+    } catch (error) {
+      console.error('Erro na verificação básica de auth:', error);
+      return false;
     }
   }
   
@@ -64,26 +30,16 @@ class SupabaseService {
     console.log('🚀 SupabaseService: Iniciando salvamento de venda...');
     
     try {
-      // 1. Verificação robusta de autenticação
-      const authVerification = await this.verifyAuthenticationContext();
+      // 1. Verificação básica de autenticação
+      const isAuthenticated = await this.verifyBasicAuth();
       
-      if (!authVerification.valid) {
-        throw new Error(`Erro de autenticação: ${authVerification.error}`);
+      if (!isAuthenticated) {
+        throw new Error('Usuário não autenticado');
       }
 
-      console.log('✅ SupabaseService: Contexto de autenticação válido:', authVerification.details);
+      console.log('✅ SupabaseService: Usuário autenticado');
 
-      // 2. Usar dados do usuário já verificados
-      const usuarioData = {
-        id: authVerification.details.usuarioId,
-        nome: authVerification.details.usuarioNome,
-        email: authVerification.details.authEmail,
-        ativo: true
-      };
-        
-      console.log('🔍 SupabaseService: Dados do usuário:', usuarioData);
-
-      // 4. Preparar dados do cliente  
+      // 2. Preparar dados do cliente  
       console.log('📝 SupabaseService: Preparando dados do cliente...');
       const clienteData = {
         nome: vendaData.cliente.nome.toUpperCase(),
@@ -93,7 +49,7 @@ class SupabaseService {
         data_nascimento: vendaData.cliente.dataNascimento || null
       };
 
-      // 5. Preparar dados do endereço
+      // 3. Preparar dados do endereço
       console.log('📝 SupabaseService: Preparando dados do endereço...');
       const enderecoData = {
         cep: vendaData.cliente.endereco.cep,
@@ -105,7 +61,7 @@ class SupabaseService {
         uf: vendaData.cliente.endereco.uf.toUpperCase()
       };
 
-      // 6. Inserir cliente
+      // 4. Inserir cliente
       console.log('💾 SupabaseService: Salvando cliente...');
       const { data: clienteInserido, error: clienteError } = await supabase
         .from('clientes')
@@ -120,7 +76,7 @@ class SupabaseService {
       
       console.log('✅ Cliente salvo:', clienteInserido);
 
-      // 7. Inserir endereço
+      // 5. Inserir endereço
       console.log('🏠 SupabaseService: Salvando endereço...');
       const { data: enderecoInserido, error: enderecoError } = await supabase
         .from('enderecos')
@@ -135,7 +91,7 @@ class SupabaseService {
       
       console.log('✅ Endereço salvo:', enderecoInserido);
 
-      // 8. Atualizar cliente com endereço
+      // 6. Atualizar cliente com endereço
       console.log('🔄 SupabaseService: Atualizando cliente com endereço...');
       const { error: updateClienteError } = await supabase
         .from('clientes')
@@ -147,24 +103,30 @@ class SupabaseService {
         throw new Error(`Erro ao atualizar cliente: ${updateClienteError.message}`);
       }
 
-      // 9. Obter informações da equipe do vendedor
-      console.log('👥 SupabaseService: Obtendo informações da equipe...');
-      const { data: equipeData, error: equipeError } = await supabase
+      // 7. Obter dados do usuário atual
+      console.log('👤 SupabaseService: Obtendo dados do usuário...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não encontrado');
+
+      const { data: usuarioData, error: usuarioError } = await supabase
         .from('usuarios')
         .select(`
           id,
           nome,
-          equipes!inner (
-            id,
+          equipes (
             nome
           )
         `)
-        .eq('id', usuarioData.id)
+        .eq('user_id', user.id)
         .single();
 
-      const equipeNome = equipeData?.equipes?.nome || 'Sem equipe';
+      if (usuarioError || !usuarioData) {
+        throw new Error('Dados do usuário não encontrados');
+      }
 
-      // 10. Inserir venda
+      const equipeNome = usuarioData.equipes?.nome || 'Sem equipe';
+
+      // 8. Inserir venda
       console.log('📋 SupabaseService: Salvando venda...');
       const vendaParaInserir = {
         cliente_id: clienteInserido.id,
@@ -190,7 +152,7 @@ class SupabaseService {
       
       console.log('✅ Venda salva:', vendaInserida);
 
-      // 11. Salvar documentos (se existirem)
+      // 9. Salvar documentos (se existirem)
       if (vendaData.documentos && Object.keys(vendaData.documentos).length > 0) {
         console.log('📎 SupabaseService: Salvando documentos...');
         await this.salvarDocumentos(vendaInserida.id, vendaData.documentos);
@@ -412,13 +374,13 @@ class SupabaseService {
     
     try {
       // Verificar autenticação antes da operação
-      const authCheck = await this.verifyAuthenticationContext();
-      if (!authCheck.valid) {
-        console.error('❌ Falha na autenticação:', authCheck.error);
-        throw new Error(`Erro de autenticação: ${authCheck.error}`);
+      const isAuthenticated = await this.verifyBasicAuth();
+      if (!isAuthenticated) {
+        console.error('❌ Falha na autenticação');
+        throw new Error('Usuário não autenticado');
       }
       
-      console.log('✅ Autenticação verificada:', authCheck.details);
+      console.log('✅ Autenticação verificada');
       
       const updateData: any = { status: novoStatus };
       
