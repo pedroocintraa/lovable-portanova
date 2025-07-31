@@ -411,6 +411,15 @@ class SupabaseService {
     console.log('🔍 atualizarStatusVenda chamado:', { id, novoStatus, extraData });
     
     try {
+      // Verificar autenticação antes da operação
+      const authCheck = await this.verifyAuthenticationContext();
+      if (!authCheck.valid) {
+        console.error('❌ Falha na autenticação:', authCheck.error);
+        throw new Error(`Erro de autenticação: ${authCheck.error}`);
+      }
+      
+      console.log('✅ Autenticação verificada:', authCheck.details);
+      
       const updateData: any = { status: novoStatus };
       
       if (extraData?.dataInstalacao) {
@@ -430,6 +439,12 @@ class SupabaseService {
 
       if (error) {
         console.error('❌ Erro do Supabase:', error);
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
 
